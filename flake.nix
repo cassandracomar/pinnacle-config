@@ -18,8 +18,8 @@
       version = "0.1.0";
       src = ./.;
 
-      PINNACLE_PROTOBUFS_API_DEFS = "${pinnacle}/api/protobuf";
-      PINNACLE_PROTOBUFS_SNOWCAP_API_DEFS = "${pinnacle}/snowcap/api/protobuf";
+      PINNACLE_PROTOBUF_API_DEFS = "${pinnacle}/api/protobuf";
+      PINNACLE_PROTOBUF_SNOWCAP_API_DEFS = "${pinnacle}/snowcap/api/protobuf";
 
       nativeBuildInputs = with pkgs; [protobuf pkg-config];
       buildInputs = with pkgs; [
