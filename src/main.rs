@@ -169,7 +169,29 @@ async fn config() {
         .group("Window")
         .description("focus next window");
 
+    input::keybind(mod_key, Keysym::Tab)
+        .on_press(|| {
+            if let Some(focused) = window::get_focused() {
+                if let Some(closest_right) = focused.in_direction(Direction::Right) {
+                    closest_right.set_focused(true);
+                }
+            }
+        })
+        .group("Window")
+        .description("focus prev window");
+
     input::keybind(mod_key, 'k')
+        .on_press(|| {
+            if let Some(focused) = window::get_focused() {
+                if let Some(closest_left) = focused.in_direction(Direction::Left) {
+                    closest_left.set_focused(true);
+                }
+            }
+        })
+        .group("Window")
+        .description("focus prev window");
+
+    input::keybind(mod_key | Mod::SHIFT, Keysym::Tab)
         .on_press(|| {
             if let Some(focused) = window::get_focused() {
                 if let Some(closest_left) = focused.in_direction(Direction::Left) {
@@ -198,6 +220,8 @@ async fn config() {
     // There are currently six built-in layout generators, one of which delegates to other
     // generators as shown below.
 
+    let current_master_factor = Arc::new(Mutex::new(0.5f32));
+
     fn into_box<'a, T: LayoutGenerator + Send + 'a>(
         generator: T,
     ) -> Box<dyn LayoutGenerator + Send + 'a> {
@@ -205,42 +229,7 @@ async fn config() {
     }
 
     // Create a cycling layout generator that can cycle between layouts on different tags.
-    let cycler = Arc::new(Mutex::new(Cycle::new([
-        into_box(MasterStack::default()),
-        into_box(MasterStack {
-            master_side: MasterSide::Right,
-            ..Default::default()
-        }),
-        into_box(MasterStack {
-            master_side: MasterSide::Top,
-            ..Default::default()
-        }),
-        into_box(MasterStack {
-            master_side: MasterSide::Bottom,
-            ..Default::default()
-        }),
-        into_box(Dwindle::default()),
-        into_box(Spiral::default()),
-        into_box(Corner::default()),
-        into_box(Corner {
-            corner_loc: CornerLocation::TopRight,
-            ..Default::default()
-        }),
-        into_box(Corner {
-            corner_loc: CornerLocation::BottomLeft,
-            ..Default::default()
-        }),
-        into_box(Corner {
-            corner_loc: CornerLocation::BottomRight,
-            ..Default::default()
-        }),
-        into_box(Fair::default()),
-        into_box(Fair {
-            axis: Axis::Horizontal,
-            ..Default::default()
-        }),
-        into_box(Floating::default()),
-    ])));
+    let cycler = Arc::new(Mutex::new(Cycle::new([into_box(MasterStack::default())])));
 
     // Use the cycling layout generator to manage layout requests.
     // This returns a layout requester that allows you to request layouts manually.
@@ -311,6 +300,33 @@ async fn config() {
         .group("Layout")
         .description("Cycle the layout backward");
 
+    input::keybind(mod_key, 'h')
+        .on_press(|| {
+            let mut master_factor = current_master_factor.lock().unwrap();
+            *master_factor -= 0.1;
+            let c = cycler.lock().unwrap();
+            // add an API function to mutate layouts so you can maintain cycle position
+            *c = Cycle::new([MasterStack {
+                master_factor: *master_factor,
+                ..Default::default()
+            }]);
+        })
+        .group("Window")
+        .description("decrease master pane size");
+
+    input::keybind(mod_key, 'l')
+        .on_press(|| {
+            let mut master_factor = current_master_factor.lock().unwrap();
+            *master_factor += 0.1;
+            let c = cycler.lock().unwrap();
+            // add an API function to mutate layouts so you can maintain cycle position
+            *c = Cycle::new([MasterStack {
+                master_factor: *master_factor,
+                ..Default::default()
+            }]);
+        })
+        .group("Window")
+        .description("increase master pane size");
     //------------------------
     // Tags                  |
     //------------------------
