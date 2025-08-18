@@ -35,7 +35,7 @@ async fn config() {
         Backend::Window => Mod::ALT,
     };
 
-    let terminal = "alacritty";
+    let terminal = "wezterm";
 
     //------------------------
     // Mousebinds            |

@@ -26,7 +26,7 @@
     };
 
     devShells.${system}.default = pkgs.mkShell {
-      packages = with pkgs; [rustc cargo rust-analyzer clang protobuf libxkbcommon pkg-config];
+      packages = with pkgs; [rustc cargo rust-analyzer clang protobuf libxkbcommon pkg-config clippy];
     };
   };
 }
