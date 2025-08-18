@@ -151,6 +151,13 @@ async fn config() {
         .group("Window")
         .description("Toggle maximized on the focused window");
 
+    input::keybind(mod_key, 'p')
+        .on_press(|| {
+            Command::new("walker").spawn();
+        })
+        .group("Process")
+        .description("spawn the application launcher");
+
     //------------------------
     // Layouts               |
     //------------------------
