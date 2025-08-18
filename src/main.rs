@@ -9,15 +9,8 @@ use pinnacle_api::layout;
 use pinnacle_api::layout::LayoutGenerator;
 use pinnacle_api::layout::LayoutNode;
 use pinnacle_api::layout::LayoutResponse;
-use pinnacle_api::layout::generators::Corner;
-use pinnacle_api::layout::generators::CornerLocation;
 use pinnacle_api::layout::generators::Cycle;
-use pinnacle_api::layout::generators::Dwindle;
-use pinnacle_api::layout::generators::Fair;
-use pinnacle_api::layout::generators::Floating;
-use pinnacle_api::layout::generators::MasterSide;
 use pinnacle_api::layout::generators::MasterStack;
-use pinnacle_api::layout::generators::Spiral;
 use pinnacle_api::output;
 use pinnacle_api::pinnacle;
 use pinnacle_api::pinnacle::Backend;
@@ -25,7 +18,8 @@ use pinnacle_api::process::Command;
 use pinnacle_api::signal::OutputSignal;
 use pinnacle_api::signal::WindowSignal;
 use pinnacle_api::tag;
-use pinnacle_api::util::{Axis, Batch};
+use pinnacle_api::util::Batch;
+use pinnacle_api::util::Direction;
 use pinnacle_api::window;
 
 async fn config() {
@@ -161,7 +155,7 @@ async fn config() {
     input::keybind(mod_key, 'j')
         .on_press(|| {
             if let Some(focused) = window::get_focused() {
-                if let Some(closest_right) = focused.in_direction(Direction::Right) {
+                if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
                     closest_right.set_focused(true);
                 }
             }
@@ -172,7 +166,7 @@ async fn config() {
     input::keybind(mod_key, Keysym::Tab)
         .on_press(|| {
             if let Some(focused) = window::get_focused() {
-                if let Some(closest_right) = focused.in_direction(Direction::Right) {
+                if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
                     closest_right.set_focused(true);
                 }
             }
@@ -183,7 +177,7 @@ async fn config() {
     input::keybind(mod_key, 'k')
         .on_press(|| {
             if let Some(focused) = window::get_focused() {
-                if let Some(closest_left) = focused.in_direction(Direction::Left) {
+                if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
                     closest_left.set_focused(true);
                 }
             }
@@ -194,7 +188,7 @@ async fn config() {
     input::keybind(mod_key | Mod::SHIFT, Keysym::Tab)
         .on_press(|| {
             if let Some(focused) = window::get_focused() {
-                if let Some(closest_left) = focused.in_direction(Direction::Left) {
+                if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
                     closest_left.set_focused(true);
                 }
             }
@@ -278,6 +272,11 @@ async fn config() {
         .group("Layout")
         .description("Cycle the layout forward");
 
+    let cycler2 = cycler.clone();
+    let master_factor_2 = current_master_factor.clone();
+    let cycler3 = cycler.clone();
+    let master_factor_3 = current_master_factor.clone();
+
     // `mod_key + shift + space` cycles to the previous layout
     input::keybind(mod_key | Mod::SHIFT, Keysym::space)
         .on_press(move || {
@@ -301,29 +300,37 @@ async fn config() {
         .description("Cycle the layout backward");
 
     input::keybind(mod_key, 'h')
-        .on_press(|| {
-            let mut master_factor = current_master_factor.lock().unwrap();
-            *master_factor -= 0.1;
-            let c = cycler.lock().unwrap();
+        .on_press(move || {
+            let mf = master_factor_2.clone();
+            let master_factor = {
+                let mut master_factor = mf.lock().unwrap();
+                *master_factor -= 0.1;
+                *master_factor
+            };
+            let c = &mut *cycler2.lock().unwrap();
             // add an API function to mutate layouts so you can maintain cycle position
-            *c = Cycle::new([MasterStack {
-                master_factor: *master_factor,
+            *c = Cycle::new([into_box(MasterStack {
+                master_factor,
                 ..Default::default()
-            }]);
+            })]);
         })
         .group("Window")
         .description("decrease master pane size");
 
     input::keybind(mod_key, 'l')
-        .on_press(|| {
-            let mut master_factor = current_master_factor.lock().unwrap();
-            *master_factor += 0.1;
-            let c = cycler.lock().unwrap();
+        .on_press(move || {
+            let mf = master_factor_3.clone();
+            let master_factor = {
+                let mut master_factor = mf.lock().unwrap();
+                *master_factor += 0.1;
+                *master_factor
+            };
+            let c = &mut *cycler3.lock().unwrap();
             // add an API function to mutate layouts so you can maintain cycle position
-            *c = Cycle::new([MasterStack {
-                master_factor: *master_factor,
+            *c = Cycle::new([into_box(MasterStack {
+                master_factor,
                 ..Default::default()
-            }]);
+            })]);
         })
         .group("Window")
         .description("increase master pane size");
@@ -331,7 +338,7 @@ async fn config() {
     // Tags                  |
     //------------------------
 
-    let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+    let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
 
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
@@ -341,7 +348,7 @@ async fn config() {
         tags.next().unwrap().set_active(true);
     });
 
-    for (tag_name, index) in tag_names.iter().zip([0..=10]) {
+    for (tag_name, index) in tag_names.into_iter().zip('1'..='9') {
         // `mod_key + 1-9` switches to tag "1" to "9"
         input::keybind(mod_key, index)
             .on_press(move || {
