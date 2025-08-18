@@ -31,7 +31,7 @@ use pinnacle_api::window;
 async fn config() {
     // Change the mod key to `Alt` when running as a nested window.
     let mod_key = match pinnacle::backend() {
-        Backend::Tty => Mod::SUPER,
+        Backend::Tty => Mod::ALT,
         Backend::Window => Mod::ALT,
     };
 
