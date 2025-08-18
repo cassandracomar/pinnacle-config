@@ -293,10 +293,12 @@ async fn config() {
     // Tags                  |
     //------------------------
 
-    let tag_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
+        output.set_scale(2.0);
+
         let mut tags = tag::add(output, tag_names);
         tags.next().unwrap().set_active(true);
     });
