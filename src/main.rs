@@ -147,7 +147,9 @@ async fn config() {
 
     input::keybind(mod_key, 'p')
         .on_press(|| {
-            Command::new("walker").spawn();
+            Command::new("rofi")
+                .args(["-show", "combi", "drun,run,ssh"])
+                .spawn();
         })
         .group("Process")
         .description("spawn the application launcher");
