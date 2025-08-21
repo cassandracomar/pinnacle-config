@@ -148,7 +148,7 @@ async fn config() {
     input::keybind(mod_key, 'p')
         .on_press(|| {
             Command::new("rofi")
-                .args(["-show", "combi", "drun,run,ssh"])
+                .args(["-show", "combi", "-modes", "combi", "-combi-modes", "drun,run"])
                 .spawn();
         })
         .group("Process")
