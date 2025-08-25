@@ -12,8 +12,6 @@ use pinnacle_api::layout::LayoutResponse;
 use pinnacle_api::layout::generators::Cycle;
 use pinnacle_api::layout::generators::MasterStack;
 use pinnacle_api::output;
-use pinnacle_api::pinnacle;
-use pinnacle_api::pinnacle::Backend;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::OutputSignal;
 use pinnacle_api::signal::WindowSignal;
@@ -21,13 +19,11 @@ use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
 use pinnacle_api::window;
+use pinnacle_api::window::WindowHandle;
 
 async fn config() {
     // Change the mod key to `Alt` when running as a nested window.
-    let mod_key = match pinnacle::backend() {
-        Backend::Tty => Mod::ALT,
-        Backend::Window => Mod::ALT,
-    };
+    let mod_key = Mod::ALT;
 
     let terminal = "wezterm";
 
@@ -148,17 +144,32 @@ async fn config() {
     input::keybind(mod_key, 'p')
         .on_press(|| {
             Command::new("rofi")
-                .args(["-show", "combi", "-modes", "combi", "-combi-modes", "drun,run"])
+                .args([
+                    "-show",
+                    "combi",
+                    "-modes",
+                    "combi",
+                    "-combi-modes",
+                    "drun,run",
+                ])
                 .spawn();
         })
         .group("Process")
         .description("spawn the application launcher");
+
+    fn previous_window(focused: &WindowHandle, direction: Direction) -> Option<WindowHandle> {
+        focused
+            .in_direction(direction)
+            .find(|next| next.in_direction(direction).next().as_ref() == Some(focused))
+    }
 
     input::keybind(mod_key, 'j')
         .on_press(|| {
             if let Some(focused) = window::get_focused() {
                 if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
                     closest_right.set_focused(true);
+                } else if let Some(previous) = previous_window(&focused, Direction::Left) {
+                    previous.set_focused(true);
                 }
             }
         })
@@ -170,6 +181,8 @@ async fn config() {
             if let Some(focused) = window::get_focused() {
                 if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
                     closest_right.set_focused(true);
+                } else if let Some(previous) = previous_window(&focused, Direction::Left) {
+                    previous.set_focused(true);
                 }
             }
         })
@@ -181,6 +194,8 @@ async fn config() {
             if let Some(focused) = window::get_focused() {
                 if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
                     closest_left.set_focused(true);
+                } else if let Some(previous) = previous_window(&focused, Direction::Right) {
+                    previous.set_focused(true);
                 }
             }
         })
@@ -192,6 +207,8 @@ async fn config() {
             if let Some(focused) = window::get_focused() {
                 if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
                     closest_left.set_focused(true);
+                } else if let Some(previous) = previous_window(&focused, Direction::Right) {
+                    previous.set_focused(true);
                 }
             }
         })
@@ -274,65 +291,108 @@ async fn config() {
         .group("Layout")
         .description("Cycle the layout forward");
 
-    let cycler2 = cycler.clone();
-    let master_factor_2 = current_master_factor.clone();
-    let cycler3 = cycler.clone();
-    let master_factor_3 = current_master_factor.clone();
-
     // `mod_key + shift + space` cycles to the previous layout
     input::keybind(mod_key | Mod::SHIFT, Keysym::space)
-        .on_press(move || {
-            let Some(focused_op) = output::get_focused() else {
-                return;
-            };
-            let Some(first_active_tag) = focused_op
-                .tags()
-                .batch_find(|tag| Box::pin(tag.active_async()), |active| *active)
-            else {
-                return;
-            };
+        .on_press({
+            let cycler = cycler.clone();
+            let requester = layout_requester.clone();
+            move || {
+                let Some(focused_op) = output::get_focused() else {
+                    return;
+                };
+                let Some(first_active_tag) = focused_op
+                    .tags()
+                    .batch_find(|tag| Box::pin(tag.active_async()), |active| *active)
+                else {
+                    return;
+                };
 
-            cycler
-                .lock()
-                .unwrap()
-                .cycle_layout_backward(&first_active_tag);
-            layout_requester.request_layout_on_output(&focused_op);
+                cycler
+                    .lock()
+                    .unwrap()
+                    .cycle_layout_backward(&first_active_tag);
+                requester.request_layout_on_output(&focused_op);
+            }
         })
         .group("Layout")
         .description("Cycle the layout backward");
 
+    input::keybind(mod_key | Mod::SHIFT, 'j')
+        .on_press({
+            let requester = layout_requester.clone();
+            move || {
+                if let Some(focused) = window::get_focused() {
+                    if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
+                        focused.swap(&closest_right);
+                    } else if let Some(previous) = previous_window(&focused, Direction::Left) {
+                        focused.swap(&previous);
+                    }
+                };
+                requester.request_layout();
+            }
+        })
+        .group("Window")
+        .description("shift window forward");
+
+    input::keybind(mod_key | Mod::SHIFT, 'k')
+        .on_press({
+            let requester = layout_requester.clone();
+            move || {
+                if let Some(focused) = window::get_focused() {
+                    if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
+                        focused.swap(&closest_left);
+                    } else if let Some(previous) = previous_window(&focused, Direction::Right) {
+                        focused.swap(&previous);
+                    }
+                };
+                requester.request_layout();
+            }
+        })
+        .group("Window")
+        .description("shift window backwards");
+
     input::keybind(mod_key, 'h')
-        .on_press(move || {
-            let mf = master_factor_2.clone();
-            let master_factor = {
-                let mut master_factor = mf.lock().unwrap();
-                *master_factor -= 0.1;
-                *master_factor
-            };
-            let c = &mut *cycler2.lock().unwrap();
-            // add an API function to mutate layouts so you can maintain cycle position
-            *c = Cycle::new([into_box(MasterStack {
-                master_factor,
-                ..Default::default()
-            })]);
+        .on_press({
+            let mf = current_master_factor.clone();
+            let cycler = cycler.clone();
+            let requester = layout_requester.clone();
+            move || {
+                let master_factor = {
+                    let mut master_factor = mf.lock().unwrap();
+                    *master_factor -= 0.1;
+                    *master_factor
+                };
+                let c = &mut *cycler.lock().unwrap();
+                // add an API function to mutate layouts so you can maintain cycle position
+                *c = Cycle::new([into_box(MasterStack {
+                    master_factor,
+                    ..Default::default()
+                })]);
+                requester.request_layout();
+            }
         })
         .group("Window")
         .description("decrease master pane size");
 
     input::keybind(mod_key, 'l')
-        .on_press(move || {
-            let mf = master_factor_3.clone();
-            let master_factor = {
-                let mut master_factor = mf.lock().unwrap();
-                *master_factor += 0.1;
-                *master_factor
-            };
-            let c = &mut *cycler3.lock().unwrap();
-            // add an API function to mutate layouts so you can maintain cycle position
-            *c = Cycle::new([into_box(MasterStack {
-                master_factor,
-                ..Default::default()
-            })]);
+        .on_press({
+            let mf = current_master_factor.clone();
+            let cycler = cycler.clone();
+            let requester = layout_requester.clone();
+            move || {
+                let master_factor = {
+                    let mut master_factor = mf.lock().unwrap();
+                    *master_factor += 0.1;
+                    *master_factor
+                };
+                let c = &mut *cycler.lock().unwrap();
+                // add an API function to mutate layouts so you can maintain cycle position
+                *c = Cycle::new([into_box(MasterStack {
+                    master_factor,
+                    ..Default::default()
+                })]);
+                requester.request_layout();
+            }
         })
         .group("Window")
         .description("increase master pane size");
