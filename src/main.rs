@@ -396,6 +396,16 @@ async fn config() {
         })
         .group("Window")
         .description("increase master pane size");
+
+    input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
+        .on_press(|| {
+            Command::new("emacsclient")
+                .args(["-c", "-e", "(+eat/here)"])
+                .spawn();
+        })
+        .group("Process")
+        .description("Open an emacs terminal");
+
     //------------------------
     // Tags                  |
     //------------------------
