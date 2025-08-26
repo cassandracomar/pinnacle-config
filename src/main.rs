@@ -492,9 +492,6 @@ async fn config() {
     if let Some(error) = pinnacle_api::pinnacle::take_last_error() {
         // Show previous crash messages
         pinnacle_api::snowcap::ConfigCrashedMessage::new(error).show();
-    } else {
-        // Or show the bind overlay on startup
-        pinnacle_api::snowcap::BindOverlay::new().show();
     }
 
     Command::new(terminal).once().spawn();
