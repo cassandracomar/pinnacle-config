@@ -67,6 +67,12 @@ async fn config() {
         .group("Compositor")
         .description("Quit Pinnacle");
 
+    // mod + q reloads the config
+    input::keybind(mod_key, 'q')
+        .set_as_reload_config()
+        .group("Compositor")
+        .description("Reload Pinnacle Config");
+
     #[cfg(feature = "snowcap")]
     {
         // `mod_key + shift + q` shows the quit prompt
@@ -83,12 +89,6 @@ async fn config() {
             .group("Compositor")
             .description("Quit Pinnacle without prompt");
     }
-
-    // `mod_key + ctrl + r` reloads the config
-    input::keybind(mod_key | Mod::CTRL, 'r')
-        .set_as_reload_config()
-        .group("Compositor")
-        .description("Reload the config");
 
     // `mod_key + shift + c` closes the focused window
     input::keybind(mod_key | Mod::SHIFT, 'c')
