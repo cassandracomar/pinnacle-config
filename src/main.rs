@@ -399,7 +399,7 @@ async fn config() {
 
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(|| {
-            Command::new("emacsclient")
+            Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
                 .args(["-c", "-e", "(+eat/here)"])
                 .spawn();
         })
