@@ -506,7 +506,7 @@ async fn config() {
                 .args([
                     "-c",
                     "-F",
-                    "'((name . \"emacsclient\") (fullscreen . 'fullheight))",
+                    "'(name . \"emacsclient\" fullscreen . 'fullheight))",
                     "-e",
                     "(+eat/here)",
                 ])
