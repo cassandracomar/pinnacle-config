@@ -503,7 +503,7 @@ async fn config() {
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(|| {
             Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
-                .args(["-c", "-e", "(+eat/here)"])
+                .args(["-c", "-F", "'(name . \"emacsclient\")", "-e", "(+eat/here)"])
                 .spawn();
         })
         .group("Process")
@@ -588,7 +588,7 @@ async fn config() {
                 window.set_tags(tag::get("VI"));
             }
             "emacs" => {
-                if window.title().contains("*eat*") {
+                if window.title().contains("emacsclient") {
                     window.set_maximized(false);
                     window.set_tags(tag::get("IV"));
                 } else {
