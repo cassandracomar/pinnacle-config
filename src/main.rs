@@ -503,7 +503,13 @@ async fn config() {
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(|| {
             Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
-                .args(["-c", "-F", "'(name . \"emacsclient\")", "-e", "(+eat/here)"])
+                .args([
+                    "-c",
+                    "-F",
+                    "((name . \"emacsclient\") (fullscreen . fullheight))",
+                    "-e",
+                    "(+eat/here)",
+                ])
                 .spawn();
         })
         .group("Process")
