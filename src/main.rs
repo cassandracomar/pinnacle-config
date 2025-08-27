@@ -587,6 +587,15 @@ async fn config() {
             "org.wezfurlong.wezterm" => {
                 window.set_tags(tag::get("VI"));
             }
+            "emacs" => {
+                if window.title().contains("*eat*") {
+                    window.set_maximized(false);
+                    window.set_tags(tag::get("IV"));
+                } else {
+                    window.set_maximized(true);
+                    window.set_tags(tag::get("I"));
+                }
+            }
             _ => {}
         }
     });
