@@ -591,6 +591,22 @@ async fn config() {
     // There are no server-side decorations yet, so request all clients use client-side decorations.
     window::add_window_rule(|window| {
         window.set_decoration_mode(window::DecorationMode::ClientSide);
+        match &window.app_id() {
+            "firefox" => {
+                window.set_maximized(true);
+                window.set_tags(tag::get_all(), false);
+                window.set_tag(tag::get("II").unwrap(), true);
+            }
+            "wezterm" => {
+                window.set_tags(tag::get_all(), false);
+                window.set_tag(tag::get("VI").unwrap(), true);
+            }
+            "emacs" => {
+                window.set_maximized(true);
+                window.set_tags(tag::get_all(), false);
+                window.set_tag(tag::get("I").unwrap(), true);
+            }
+        }
     });
 
     // Enable sloppy focus
