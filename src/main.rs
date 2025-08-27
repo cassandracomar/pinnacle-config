@@ -245,14 +245,19 @@ async fn config() {
                 backward_cross,
             } = circularize_direction(circle);
 
+            let mut reversed: Vec<_> = focused.in_direction(backward).collect();
+            let mut reversed_cross: Vec<_> = focused.in_direction(backward_cross).collect();
+            reversed.reverse();
+            reversed_cross.reverse();
+
             if let Some(next) = focused
                 // build a circular iterator by chaining an iterator in the four cardinal directions
                 // when there are only a few windows (i.e. most of the time), most of these directions will yield nothing
                 // except for one.
                 .in_direction(forward)
                 .chain(focused.in_direction(forward_cross))
-                .chain(focused.in_direction(backward))
-                .chain(focused.in_direction(backward_cross))
+                .chain(reversed)
+                .chain(reversed_cross)
                 // fallback if directional movement doesn't yield anything -- mainly needed to be able to rotate maximized windows
                 .chain(focused.tags().flat_map(|tag| tag.windows()))
                 .next()
