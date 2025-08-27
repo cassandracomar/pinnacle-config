@@ -281,7 +281,7 @@ async fn config() {
         .on_press(|| {
             on_next_circular(
                 window::get_focused(),
-                CircleDirection::CounterClockwise,
+                CircleDirection::Clockwise,
                 move_focus(),
             );
         })
@@ -303,7 +303,7 @@ async fn config() {
         .on_press(|| {
             on_next_circular(
                 window::get_focused(),
-                CircleDirection::Clockwise,
+                CircleDirection::CounterClockwise,
                 move_focus(),
             );
         })
