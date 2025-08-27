@@ -439,7 +439,7 @@ async fn config() {
             move || {
                 on_next_circular(
                     window::get_focused(),
-                    CircleDirection::CounterClockwise,
+                    CircleDirection::Clockwise,
                     swap_windows(&requester),
                 );
             }
@@ -453,7 +453,7 @@ async fn config() {
             move || {
                 on_next_circular(
                     window::get_focused(),
-                    CircleDirection::Clockwise,
+                    CircleDirection::CounterClockwise,
                     swap_windows(&requester),
                 );
             }
