@@ -468,22 +468,16 @@ async fn config() {
 
     input::keybind(mod_key, 'h')
         .on_press({
-            let mf = current_master_factor.clone();
-            let cycler = cycler.clone();
             let requester = layout_requester.clone();
             move || {
-                let master_factor = {
-                    let mut master_factor = mf.lock().unwrap();
-                    *master_factor -= 0.1;
-                    *master_factor
-                };
-                let c = &mut *cycler.lock().unwrap();
-                // add an API function to mutate layouts so you can maintain cycle position
-                *c = Cycle::new([into_box(MasterStack {
-                    master_factor,
-                    ..Default::default()
-                })]);
-                requester.request_layout();
+                if let Some(focused) = window::get_focused() {
+                    let master = focused
+                        .in_direction(Direction::Left)
+                        .next()
+                        .unwrap_or(focused);
+                    master.resize_tile(0, -10, 0, 0);
+                    requester.request_layout();
+                }
             }
         })
         .group("Window")
@@ -491,22 +485,16 @@ async fn config() {
 
     input::keybind(mod_key, 'l')
         .on_press({
-            let mf = current_master_factor.clone();
-            let cycler = cycler.clone();
             let requester = layout_requester.clone();
             move || {
-                let master_factor = {
-                    let mut master_factor = mf.lock().unwrap();
-                    *master_factor += 0.1;
-                    *master_factor
-                };
-                let c = &mut *cycler.lock().unwrap();
-                // add an API function to mutate layouts so you can maintain cycle position
-                *c = Cycle::new([into_box(MasterStack {
-                    master_factor,
-                    ..Default::default()
-                })]);
-                requester.request_layout();
+                if let Some(focused) = window::get_focused() {
+                    let master = focused
+                        .in_direction(Direction::Left)
+                        .next()
+                        .unwrap_or(focused);
+                    master.resize_tile(0, 10, 0, 0);
+                    requester.request_layout();
+                }
             }
         })
         .group("Window")
@@ -596,16 +584,8 @@ async fn config() {
                 window.set_maximized(true);
                 window.set_tags(tag::get("II"));
             }
-            "wezterm" => {
+            "org.wezfurlong.wezterm" => {
                 window.set_tags(tag::get("VI"));
-            }
-            "emacs" => {
-                window.set_maximized(true);
-                window.set_tags(tag::get("I"));
-            }
-            "emacsclient" => {
-                window.set_maximized(false);
-                window.set_tags(tag::get("IV"));
             }
             _ => {}
         }
