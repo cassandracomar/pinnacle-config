@@ -271,9 +271,8 @@ async fn config() {
         |focused: &WindowHandle, next: &WindowHandle| {
             if focused.maximized() {
                 focused.set_maximized(false);
-                focused.lower();
                 next.set_maximized(true);
-                next.raise();
+                focused.swap(next);
             }
             next.set_focused(true);
         }
