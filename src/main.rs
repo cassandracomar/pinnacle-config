@@ -224,10 +224,10 @@ async fn config() {
                 backward_cross: Direction::Up,
             },
             CircleDirection::CounterClockwise => Circularized {
-                forward: Direction::Left,
-                forward_cross: Direction::Up,
-                backward: Direction::Right,
-                backward_cross: Direction::Down,
+                forward: Direction::Up,
+                forward_cross: Direction::Left,
+                backward: Direction::Down,
+                backward_cross: Direction::Right,
             },
         }
     }
