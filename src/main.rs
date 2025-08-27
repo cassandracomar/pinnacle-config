@@ -270,9 +270,9 @@ async fn config() {
     fn move_focus() -> impl Fn(&WindowHandle, &WindowHandle) {
         |focused: &WindowHandle, next: &WindowHandle| {
             if focused.maximized() {
+                focused.swap(next);
                 focused.set_maximized(false);
                 next.set_maximized(true);
-                focused.swap(next);
             }
             next.set_focused(true);
         }
@@ -522,7 +522,7 @@ async fn config() {
     // Tags                  |
     //------------------------
 
-    let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
+    let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
@@ -532,7 +532,7 @@ async fn config() {
         tags.next().unwrap().set_active(true);
     });
 
-    for (tag_name, index) in tag_names.into_iter().zip('1'..='9') {
+    for (tag_name, index) in tag_names.into_iter().zip(('1'..='9').chain('0'..='0')) {
         // `mod_key + 1-9` switches to tag "1" to "9"
         input::keybind(mod_key, index)
             .on_press(move || {
