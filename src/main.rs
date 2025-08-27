@@ -15,7 +15,6 @@ use pinnacle_api::layout::generators::MasterStack;
 use pinnacle_api::output;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::OutputSignal;
-use pinnacle_api::signal::WindowSignal;
 use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
@@ -259,7 +258,11 @@ async fn config() {
                 .chain(reversed)
                 .chain(reversed_cross)
                 // fallback if directional movement doesn't yield anything -- mainly needed to be able to rotate maximized windows
-                .chain(focused.tags().flat_map(|tag| tag.windows()))
+                .chain(
+                    focused
+                        .tags()
+                        .flat_map(|tag| tag.windows().filter(|w| w != &focused)),
+                )
                 .next()
             {
                 action(&focused, &next)
