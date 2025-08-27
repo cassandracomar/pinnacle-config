@@ -591,28 +591,25 @@ async fn config() {
     // There are no server-side decorations yet, so request all clients use client-side decorations.
     window::add_window_rule(|window| {
         window.set_decoration_mode(window::DecorationMode::ClientSide);
-        match &window.app_id() {
+        match &*window.app_id() {
             "firefox" => {
                 window.set_maximized(true);
-                window.set_tags(tag::get_all(), false);
-                window.set_tag(tag::get("II").unwrap(), true);
+                window.set_tags(tag::get("II"));
             }
             "wezterm" => {
-                window.set_tags(tag::get_all(), false);
-                window.set_tag(tag::get("VI").unwrap(), true);
+                window.set_tags(tag::get("VI"));
             }
             "emacs" => {
                 window.set_maximized(true);
-                window.set_tags(tag::get_all(), false);
-                window.set_tag(tag::get("I").unwrap(), true);
+                window.set_tags(tag::get("I"));
             }
+            "emacsclient" => {
+                window.set_maximized(false);
+                window.set_tags(tag::get("IV"));
+            }
+            _ => {}
         }
     });
-
-    // Enable sloppy focus
-    // window::connect_signal(WindowSignal::PointerEnter(Box::new(|win| {
-    //     win.set_focused(true);
-    // })));
 
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
