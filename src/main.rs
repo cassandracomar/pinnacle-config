@@ -500,13 +500,21 @@ async fn config() {
         .group("Window")
         .description("increase master pane size");
 
+    let frame_name = "(name . \"emacsclient\")";
+    let fullscreen = "(fullscreen . fullheight)";
+    let auto_raise = "(auto-raise . nil)";
+    let auto_lower = "(auto-lower . nil)";
+    let wait_for_wm = "(wait-for-wm . t)";
+
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
-        .on_press(|| {
+        .on_press(move || {
             Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
                 .args([
                     "-c",
                     "-F",
-                    "((name . \"emacsclient\") (fullscreen . fullheight))",
+                    &*format!(
+                        "({frame_name} {fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"
+                    ),
                     "-e",
                     "(+eat/here)",
                 ])
