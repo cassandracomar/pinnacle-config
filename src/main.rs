@@ -8,6 +8,7 @@ use pinnacle_api::input::{Mod, MouseButton};
 use pinnacle_api::layout;
 use pinnacle_api::layout::LayoutGenerator;
 use pinnacle_api::layout::LayoutNode;
+use pinnacle_api::layout::LayoutRequester;
 use pinnacle_api::layout::LayoutResponse;
 use pinnacle_api::layout::generators::Cycle;
 use pinnacle_api::layout::generators::MasterStack;
@@ -34,6 +35,10 @@ async fn config() {
     // `mod_key + left click` starts moving a window
     input::mousebind(mod_key, MouseButton::Left)
         .on_press(|| {
+            if let Some(w) = window::get_focused() {
+                w.toggle_floating();
+                w.raise();
+            }
             window::begin_move(MouseButton::Left);
         })
         .group("Mouse")
@@ -42,6 +47,10 @@ async fn config() {
     // `mod_key + right click` starts resizing a window
     input::mousebind(mod_key, MouseButton::Right)
         .on_press(|| {
+            if let Some(w) = window::get_focused() {
+                w.toggle_floating();
+                w.raise();
+            }
             window::begin_resize(MouseButton::Right);
         })
         .group("Mouse")
@@ -108,6 +117,20 @@ async fn config() {
         .group("Process")
         .description("Spawn a terminal");
 
+    input::keybind(mod_key | Mod::SHIFT, 'p')
+        .on_press(move || {
+            Command::new("clipcat-menu").spawn();
+        })
+        .group("Process")
+        .description("Open Clipboard History");
+
+    input::keybind(mod_key, 'o')
+        .on_press(move || {
+            Command::new("rofi-rbw").spawn();
+        })
+        .group("Process")
+        .description("Bitwarden Passwords");
+
     // `mod_key + ctrl + space` toggles floating
     input::keybind(mod_key | Mod::CTRL, Keysym::space)
         .on_press(|| {
@@ -150,67 +173,145 @@ async fn config() {
                     "-modes",
                     "combi",
                     "-combi-modes",
-                    "drun,run",
+                    "drun,run,calc,window,ssh",
                 ])
                 .spawn();
         })
         .group("Process")
         .description("spawn the application launcher");
 
-    fn previous_window(focused: &WindowHandle, direction: Direction) -> Option<WindowHandle> {
-        focused
-            .in_direction(direction)
-            .find(|next| next.in_direction(direction).next().as_ref() == Some(focused))
+    input::keybind(mod_key, 'n')
+        .on_press(|| {
+            Command::new("rofi")
+                .args(["-show", "emoji", "-modes", "emoji"])
+                .spawn();
+        })
+        .group("Process")
+        .description("spawn the application launcher");
+
+    input::keybind(mod_key, 'i')
+        .on_press(|| {
+            Command::new("rofi")
+                .args([
+                    "-show",
+                    "file-browser-extended",
+                    "-modes",
+                    "file-browser-extended",
+                ])
+                .spawn();
+        })
+        .group("Process")
+        .description("spawn the application launcher");
+
+    enum CircleDirection {
+        Clockwise,
+        CounterClockwise,
+    }
+
+    struct Circularized {
+        forward: Direction,
+        forward_cross: Direction,
+        backward: Direction,
+        backward_cross: Direction,
+    }
+
+    fn circularize_direction(cdir: CircleDirection) -> Circularized {
+        match cdir {
+            CircleDirection::Clockwise => Circularized {
+                forward: Direction::Right,
+                forward_cross: Direction::Down,
+                backward: Direction::Left,
+                backward_cross: Direction::Up,
+            },
+            CircleDirection::CounterClockwise => Circularized {
+                forward: Direction::Left,
+                forward_cross: Direction::Down,
+                backward: Direction::Right,
+                backward_cross: Direction::Up,
+            },
+        }
+    }
+
+    fn on_next_circular(
+        focused: Option<WindowHandle>,
+        circle: CircleDirection,
+        action: impl FnOnce(&WindowHandle, &WindowHandle),
+    ) {
+        if let Some(focused) = focused {
+            let Circularized {
+                forward,
+                forward_cross,
+                backward,
+                backward_cross,
+            } = circularize_direction(circle);
+
+            if let Some(next) = focused
+                // build a circular iterator by chaining an iterator in the four cardinal directions
+                // when there are only a few windows (i.e. most of the time), most of these directions will yield nothing
+                // except for one.
+                .in_direction(forward)
+                .chain(focused.in_direction(forward_cross))
+                .chain(focused.in_direction(backward))
+                .chain(focused.in_direction(backward_cross))
+                // fallback if directional movement doesn't yield anything -- mainly needed to be able to rotate maximized windows
+                .chain(focused.tags().flat_map(|tag| tag.windows()))
+                .next()
+            {
+                action(&focused, &next)
+            }
+        }
+    }
+
+    fn move_focus() -> impl Fn(&WindowHandle, &WindowHandle) {
+        |focused: &WindowHandle, next: &WindowHandle| {
+            if focused.maximized() {
+                next.set_maximized(true);
+                next.raise();
+            }
+            next.set_focused(true);
+        }
     }
 
     input::keybind(mod_key, 'j')
         .on_press(|| {
-            if let Some(focused) = window::get_focused() {
-                if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
-                    closest_right.set_focused(true);
-                } else if let Some(previous) = previous_window(&focused, Direction::Left) {
-                    previous.set_focused(true);
-                }
-            }
+            on_next_circular(
+                window::get_focused(),
+                CircleDirection::CounterClockwise,
+                move_focus(),
+            );
         })
         .group("Window")
         .description("focus next window");
 
     input::keybind(mod_key, Keysym::Tab)
         .on_press(|| {
-            if let Some(focused) = window::get_focused() {
-                if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
-                    closest_right.set_focused(true);
-                } else if let Some(previous) = previous_window(&focused, Direction::Left) {
-                    previous.set_focused(true);
-                }
-            }
+            on_next_circular(
+                window::get_focused(),
+                CircleDirection::Clockwise,
+                move_focus(),
+            );
         })
         .group("Window")
         .description("focus prev window");
 
     input::keybind(mod_key, 'k')
         .on_press(|| {
-            if let Some(focused) = window::get_focused() {
-                if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
-                    closest_left.set_focused(true);
-                } else if let Some(previous) = previous_window(&focused, Direction::Right) {
-                    previous.set_focused(true);
-                }
-            }
+            on_next_circular(
+                window::get_focused(),
+                CircleDirection::Clockwise,
+                move_focus(),
+            );
         })
         .group("Window")
         .description("focus prev window");
 
     input::keybind(mod_key | Mod::SHIFT, Keysym::Tab)
         .on_press(|| {
-            if let Some(focused) = window::get_focused() {
-                if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
-                    closest_left.set_focused(true);
-                } else if let Some(previous) = previous_window(&focused, Direction::Right) {
-                    previous.set_focused(true);
-                }
-            }
+            on_next_circular(
+                window::get_focused(),
+                CircleDirection::CounterClockwise,
+                move_focus(),
+            );
         })
         .group("Window")
         .description("focus next window");
@@ -317,18 +418,25 @@ async fn config() {
         .group("Layout")
         .description("Cycle the layout backward");
 
+    fn swap_windows(
+        layout_requester: &LayoutRequester,
+    ) -> impl FnOnce(&WindowHandle, &WindowHandle) {
+        let requester = layout_requester.clone();
+        move |focused, next| {
+            focused.swap(next);
+            requester.request_layout();
+        }
+    }
+
     input::keybind(mod_key | Mod::SHIFT, 'j')
         .on_press({
             let requester = layout_requester.clone();
             move || {
-                if let Some(focused) = window::get_focused() {
-                    if let Some(closest_right) = focused.in_direction(Direction::Right).next() {
-                        focused.swap(&closest_right);
-                    } else if let Some(previous) = previous_window(&focused, Direction::Left) {
-                        focused.swap(&previous);
-                    }
-                };
-                requester.request_layout();
+                on_next_circular(
+                    window::get_focused(),
+                    CircleDirection::CounterClockwise,
+                    swap_windows(&requester),
+                );
             }
         })
         .group("Window")
@@ -338,14 +446,11 @@ async fn config() {
         .on_press({
             let requester = layout_requester.clone();
             move || {
-                if let Some(focused) = window::get_focused() {
-                    if let Some(closest_left) = focused.in_direction(Direction::Left).next() {
-                        focused.swap(&closest_left);
-                    } else if let Some(previous) = previous_window(&focused, Direction::Right) {
-                        focused.swap(&previous);
-                    }
-                };
-                requester.request_layout();
+                on_next_circular(
+                    window::get_focused(),
+                    CircleDirection::Clockwise,
+                    swap_windows(&requester),
+                );
             }
         })
         .group("Window")
