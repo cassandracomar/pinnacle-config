@@ -270,9 +270,10 @@ async fn config() {
     fn move_focus() -> impl Fn(&WindowHandle, &WindowHandle) {
         |focused: &WindowHandle, next: &WindowHandle| {
             if focused.maximized() {
-                focused.swap(next);
                 focused.set_maximized(false);
+                focused.lower();
                 next.set_maximized(true);
+                next.raise();
             }
             next.set_focused(true);
         }
