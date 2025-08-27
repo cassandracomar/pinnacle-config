@@ -270,6 +270,8 @@ async fn config() {
     fn move_focus() -> impl Fn(&WindowHandle, &WindowHandle) {
         |focused: &WindowHandle, next: &WindowHandle| {
             if focused.maximized() {
+                focused.set_maximized(false);
+                focused.lower();
                 next.set_maximized(true);
                 next.raise();
             }
@@ -429,6 +431,7 @@ async fn config() {
         let requester = layout_requester.clone();
         move |focused, next| {
             focused.swap(next);
+            focused.set_focused(true);
             requester.request_layout();
         }
     }
