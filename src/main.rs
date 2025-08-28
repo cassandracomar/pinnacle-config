@@ -343,8 +343,6 @@ async fn config() {
     // There are currently six built-in layout generators, one of which delegates to other
     // generators as shown below.
 
-    let current_master_factor = Arc::new(Mutex::new(0.5f32));
-
     fn into_box<'a, T: LayoutGenerator + Send + 'a>(
         generator: T,
     ) -> Box<dyn LayoutGenerator + Send + 'a> {
@@ -531,6 +529,7 @@ async fn config() {
 
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
+        output.set_mode(3840, 2160, 120000);
         output.set_scale(2.0);
 
         let mut tags = tag::add(output, tag_names);
@@ -604,6 +603,7 @@ async fn config() {
             "emacs" => {
                 if window.title().contains("emacsclient") {
                     window.set_maximized(false);
+                    window.set_fullscreen(false);
                     window.set_tags(tag::get("IV"));
                 } else {
                     window.set_maximized(true);
