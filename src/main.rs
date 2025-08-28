@@ -525,7 +525,7 @@ async fn config() {
     // Tags                  |
     //------------------------
 
-    let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+    let tag_names = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
