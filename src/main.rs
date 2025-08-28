@@ -534,6 +534,9 @@ async fn config() {
 
         let mut tags = tag::add(output, tag_names);
         tags.next().unwrap().set_active(true);
+        Command::new("eww")
+            .args(["open", "--screen", &*output.name(), "win1"])
+            .spawn();
     });
 
     for (tag_name, index) in tag_names.into_iter().zip(('1'..='9').chain('0'..='0')) {
@@ -625,6 +628,7 @@ async fn config() {
         pinnacle_api::snowcap::ConfigCrashedMessage::new(error).show();
     }
 
+    Command::new("eww").args(["daemon"]).once().spawn();
     Command::new(terminal).once().spawn();
 }
 
