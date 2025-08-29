@@ -604,30 +604,42 @@ async fn config() {
         }
     });
 
-    // There are no server-side decorations yet, so request all clients use client-side decorations.
-    window::add_window_rule(|window| {
-        window.set_decoration_mode(window::DecorationMode::ClientSide);
-        match &*window.app_id() {
-            "firefox" => {
-                window.set_maximized(true);
-                window.set_tags(tag::get("II"));
-            }
-            "org.wezfurlong.wezterm" => {
-                window.set_tags(tag::get("VI"));
-            }
-            "emacs" => {
-                if window.title().contains("emacsclient") {
-                    window.set_maximized(false);
-                    window.set_fullscreen(false);
-                    window.set_tags(tag::get("IV"));
-                } else {
-                    window.set_maximized(true);
-                    window.set_tags(tag::get("I"));
-                }
-            }
-            _ => {}
+    #[cfg(feature = "snowcap")]
+    {
+        use pinnacle_api::snowcap::FocusBorder;
+
+        // Add borders to already existing windows.
+        for win in window::get_all() {
+            FocusBorder::new(&win).decorate();
         }
-    });
+
+        // Add borders to new windows.
+        window::add_window_rule(move |window| {
+            window.set_decoration_mode(window::DecorationMode::ServerSide);
+            FocusBorder::new(&window).decorate();
+
+            match &*window.app_id() {
+                "firefox" => {
+                    window.set_maximized(true);
+                    window.set_tags(tag::get("II"));
+                }
+                "org.wezfurlong.wezterm" => {
+                    window.set_tags(tag::get("VI"));
+                }
+                "emacs" => {
+                    if window.title().contains("emacsclient") {
+                        window.set_maximized(false);
+                        window.set_fullscreen(false);
+                        window.set_tags(tag::get("IV"));
+                    } else {
+                        window.set_maximized(true);
+                        window.set_tags(tag::get("I"));
+                    }
+                }
+                _ => {}
+            }
+        });
+    }
 
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
