@@ -35,8 +35,20 @@ async fn config() {
     input::mousebind(mod_key, MouseButton::Left)
         .on_press(|| {
             if let Some(w) = window::get_focused() {
-                w.toggle_floating();
+                w.set_floating(true);
                 w.raise();
+            }
+            window::begin_move(MouseButton::Left);
+        })
+        .group("Mouse")
+        .description("Start an interactive window move");
+
+    // `mod_key + Shift + left click` unfloats the window
+    input::mousebind(mod_key | Mod::SHIFT, MouseButton::Left)
+        .on_press(|| {
+            if let Some(w) = window::get_focused() {
+                w.set_floating(false);
+                w.lower();
             }
             window::begin_move(MouseButton::Left);
         })
@@ -47,7 +59,7 @@ async fn config() {
     input::mousebind(mod_key, MouseButton::Right)
         .on_press(|| {
             if let Some(w) = window::get_focused() {
-                w.toggle_floating();
+                w.set_floating(true);
                 w.raise();
             }
             window::begin_resize(MouseButton::Right);
