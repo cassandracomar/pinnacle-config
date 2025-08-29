@@ -616,10 +616,15 @@ async fn config() {
 
             FocusBorder {
                 // hex: eedece
+                unfocused_color: Color::rgb(
+                    (0x3c as f32) / (0xff as f32),
+                    (0x2c as f32) / (0xff as f32),
+                    (0x1c as f32) / (0xff as f32),
+                ),
                 focused_color: Color::rgb(
-                    238.0f32 / 255.0f32,
-                    222.0f32 / 255.0f32,
-                    206.0f32 / 255.0f32,
+                    (0xee as f32) / (0xff as f32),
+                    (0xde as f32) / (0xff as f32),
+                    (0xce as f32) / (0xff as f32),
                 ),
                 thickness: 2,
                 ..FocusBorder::new(win)
