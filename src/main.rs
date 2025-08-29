@@ -614,7 +614,7 @@ async fn config() {
         fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
             use pinnacle_api::experimental::snowcap_api::widget::Color;
 
-            let fb = FocusBorder {
+            FocusBorder {
                 // hex: eedece
                 focused_color: Color::rgb(
                     238.0f32 / 255.0f32,
@@ -623,8 +623,8 @@ async fn config() {
                 ),
                 thickness: 2,
                 ..FocusBorder::new(win)
-            };
-            fb.decorate()
+            }
+            .decorate()
         }
 
         // Add borders to already existing windows.

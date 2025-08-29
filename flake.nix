@@ -1,6 +1,6 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs";
-  inputs.pinnacle.url = "github:cassandracomar/pinnacle";
+  inputs.pinnacle.url = "github:cassandracomar/pinnacle/feat/nix-packages-and-modules";
 
   outputs = {nixpkgs, pinnacle, ...}: let
     system = "x86_64-linux";

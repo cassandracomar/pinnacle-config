@@ -78,15 +78,16 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1756124482,
-        "narHash": "sha256-bI2Pkzzo3mLTNFp29BwtrfkZQkIiE/PVMq+VsRGoD8k=",
+        "lastModified": 1756505497,
+        "narHash": "sha256-Lu6/RU1PO/VjILh/p83eM3qB1oddDB+hmTbGDompUsg=",
         "owner": "cassandracomar",
         "repo": "pinnacle",
-        "rev": "63f98dfb0816bbf5367351979f10afc57fd98c43",
+        "rev": "5306033d0202e2e3c35ae2867a392c968261b50c",
         "type": "github"
       },
       "original": {
         "owner": "cassandracomar",
+        "ref": "feat/nix-packages-and-modules",
         "repo": "pinnacle",
         "type": "github"
       }
