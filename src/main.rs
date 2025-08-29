@@ -606,17 +606,36 @@ async fn config() {
 
     #[cfg(feature = "snowcap")]
     {
-        use pinnacle_api::snowcap::FocusBorder;
+        use pinnacle_api::{
+            experimental::snowcap_api::decoration::DecorationHandle,
+            snowcap::{FocusBorder, FocusBorderMessage},
+        };
+
+        fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
+            use pinnacle_api::experimental::snowcap_api::widget::Color;
+
+            let fb = FocusBorder {
+                // hex: eedece
+                focused_color: Color::rgb(
+                    238.0f32 / 255.0f32,
+                    222.0f32 / 255.0f32,
+                    206.0f32 / 255.0f32,
+                ),
+                thickness: 2,
+                ..FocusBorder::new(win)
+            };
+            fb.decorate()
+        }
 
         // Add borders to already existing windows.
         for win in window::get_all() {
-            FocusBorder::new(&win).decorate();
+            make_fb(&win);
         }
 
         // Add borders to new windows.
         window::add_window_rule(move |window| {
             window.set_decoration_mode(window::DecorationMode::ServerSide);
-            FocusBorder::new(&window).decorate();
+            make_fb(&window);
 
             match &*window.app_id() {
                 "firefox" => {
