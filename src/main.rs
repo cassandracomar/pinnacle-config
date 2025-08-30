@@ -77,8 +77,8 @@ async fn config() {
                 w.toggle_floating();
             }
         })
-        .group("Compositor")
-        .description("Show the bindings overlay");
+        .group("Window")
+        .description("Toggle floating");
 
     // `mod_key + s` shows the bindings overlay
     #[cfg(feature = "snowcap")]
