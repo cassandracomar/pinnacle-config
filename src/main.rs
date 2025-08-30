@@ -24,6 +24,7 @@ use pinnacle_api::window::WindowHandle;
 async fn config() {
     // Change the mod key to `Alt` when running as a nested window.
     let mod_key = Mod::ALT;
+    let mod4_key = Mod::SUPER;
 
     let terminal = "wezterm";
 
@@ -219,6 +220,13 @@ async fn config() {
                     "file-browser-extended",
                 ])
                 .spawn();
+        })
+        .group("Process")
+        .description("spawn the application launcher");
+
+    input::keybind(mod4_key, 'p')
+        .on_press(|| {
+            Command::new("rofi-screenshot").spawn();
         })
         .group("Process")
         .description("spawn the application launcher");
