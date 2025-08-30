@@ -71,6 +71,15 @@ async fn config() {
     // Keybinds              |
     //------------------------
 
+    input::keybind(mod_key, 't')
+        .on_press(|| {
+            if let Some(w) = window::get_focused() {
+                w.toggle_floating();
+            }
+        })
+        .group("Compositor")
+        .description("Show the bindings overlay");
+
     // `mod_key + s` shows the bindings overlay
     #[cfg(feature = "snowcap")]
     input::keybind(mod_key, 's')
@@ -615,7 +624,6 @@ async fn config() {
             use pinnacle_api::experimental::snowcap_api::widget::Color;
 
             FocusBorder {
-                // hex: eedece
                 unfocused_color: Color::rgb(
                     (0x3c as f32) / (0xff as f32),
                     (0x2c as f32) / (0xff as f32),
