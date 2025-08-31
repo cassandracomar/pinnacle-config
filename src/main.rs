@@ -229,7 +229,7 @@ async fn config() {
             Command::new("rofi-screenshot").spawn();
         })
         .group("Process")
-        .description("spawn the application launcher");
+        .description("take a screenshot");
 
     enum CircleDirection {
         Clockwise,
