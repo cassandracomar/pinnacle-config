@@ -680,7 +680,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pinnacle-api"
 version = "0.1.0"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#5306033d0202e2e3c35ae2867a392c968261b50c"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#1bbb079978e850eeaa4f760077ef928a1f6f7170"
 dependencies = [
  "bitflags",
  "futures",
@@ -700,7 +700,7 @@ dependencies = [
 [[package]]
 name = "pinnacle-api-defs"
 version = "0.0.1"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#5306033d0202e2e3c35ae2867a392c968261b50c"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#1bbb079978e850eeaa4f760077ef928a1f6f7170"
 dependencies = [
  "prost",
  "tonic",
@@ -917,7 +917,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "snowcap-api"
 version = "0.1.0"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#5306033d0202e2e3c35ae2867a392c968261b50c"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#1bbb079978e850eeaa4f760077ef928a1f6f7170"
 dependencies = [
  "from_variants",
  "futures",
@@ -936,7 +936,7 @@ dependencies = [
 [[package]]
 name = "snowcap-api-defs"
 version = "0.1.0"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#5306033d0202e2e3c35ae2867a392c968261b50c"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fnix-packages-and-modules#1bbb079978e850eeaa4f760077ef928a1f6f7170"
 dependencies = [
  "prost",
  "tonic",
