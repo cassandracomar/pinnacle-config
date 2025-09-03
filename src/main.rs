@@ -167,13 +167,6 @@ async fn config() {
     input::keybind(mod_key, 'f')
         .on_press(|| {
             if let Some(window) = window::get_focused() {
-                if let Some(output) = output::get_focused() {
-                    if window.fullscreen() {
-                        output.set_scale(2.0)
-                    } else {
-                        output.set_scale(1.0);
-                    }
-                }
                 window.toggle_fullscreen();
                 window.raise();
             }
@@ -699,6 +692,8 @@ async fn config() {
         // Show previous crash messages
         pinnacle_api::snowcap::ConfigCrashedMessage::new(error).show();
     }
+
+    pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
     Command::new("eww").args(["daemon"]).once().spawn();
     Command::new(terminal).once().spawn();
