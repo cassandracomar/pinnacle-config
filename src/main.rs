@@ -560,7 +560,7 @@ async fn config() {
     output::for_each_output(move |output| {
         output.set_mode(3840, 2160, 120000);
         output.set_scale(2.0);
-        output.set_vrr(output::Vrr::AlwaysOn);
+        output.set_vrr(output::Vrr::OnDemand);
 
         let mut tags = tag::add(output, tag_names);
         tags.next().unwrap().set_active(true);
