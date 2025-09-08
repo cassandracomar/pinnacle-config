@@ -654,9 +654,9 @@ async fn config() {
         #[cfg(feature = "snowcap")]
         make_fb(&window);
 
-        if &*window.app_id() != "firefox" {
-            window.set_vrr_demand(VrrDemand::when_fullscreen());
-        }
+        // if &*window.app_id() != "firefox" {
+        //     window.set_vrr_demand(VrrDemand::when_fullscreen());
+        // }
 
         match &*window.app_id() {
             "firefox" => {
