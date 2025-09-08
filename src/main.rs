@@ -19,7 +19,6 @@ use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
 use pinnacle_api::window;
-use pinnacle_api::window::VrrDemand;
 use pinnacle_api::window::WindowHandle;
 
 async fn config() {
