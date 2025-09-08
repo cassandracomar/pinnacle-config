@@ -597,6 +597,7 @@ async fn config() {
                     && let Some(win) = window::get_focused()
                 {
                     win.move_to_tag(&tag);
+                    tag.switch_to();
                 }
             })
             .group("Tag")
