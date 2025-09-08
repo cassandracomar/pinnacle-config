@@ -19,6 +19,7 @@ use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
 use pinnacle_api::window;
+use pinnacle_api::window::VrrDemand;
 use pinnacle_api::window::WindowHandle;
 
 async fn config() {
@@ -623,64 +624,65 @@ async fn config() {
     });
 
     #[cfg(feature = "snowcap")]
-    {
-        use pinnacle_api::{
-            experimental::snowcap_api::{decoration::DecorationHandle, widget::Color},
-            snowcap::{FocusBorder, FocusBorderMessage},
-            window::VrrDemand,
-        };
+    use pinnacle_api::{
+        experimental::snowcap_api::{decoration::DecorationHandle, widget::Color},
+        snowcap::{FocusBorder, FocusBorderMessage},
+    };
 
-        fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
-            FocusBorder {
-                unfocused_color: Color::rgb(
-                    (0x3c as f32) / (0xff as f32),
-                    (0x2c as f32) / (0xff as f32),
-                    (0x1c as f32) / (0xff as f32),
-                ),
-                focused_color: Color::rgb(
-                    (0xee as f32) / (0xff as f32),
-                    (0xde as f32) / (0xff as f32),
-                    (0xce as f32) / (0xff as f32),
-                ),
-                thickness: 2,
-                ..FocusBorder::new(win)
-            }
-            .decorate()
+    #[cfg(feature = "snowcap")]
+    fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
+        FocusBorder {
+            unfocused_color: Color::rgb(
+                (0x3c as f32) / (0xff as f32),
+                (0x2c as f32) / (0xff as f32),
+                (0x1c as f32) / (0xff as f32),
+            ),
+            focused_color: Color::rgb(
+                (0xee as f32) / (0xff as f32),
+                (0xde as f32) / (0xff as f32),
+                (0xce as f32) / (0xff as f32),
+            ),
+            thickness: 2,
+            ..FocusBorder::new(win)
         }
-
-        fn apply_window_rules(window: WindowHandle) {
-            window.set_decoration_mode(window::DecorationMode::ServerSide);
-            make_fb(&window);
-            window.set_vrr_demand(VrrDemand::when_fullscreen());
-
-            match &*window.app_id() {
-                "firefox" => {
-                    window.set_maximized(true);
-                    window.set_tags(tag::get("II"));
-                }
-                "org.wezfurlong.wezterm" => {
-                    window.set_tags(tag::get("VI"));
-                }
-                "emacs" => {
-                    if window.title().contains("emacsclient") {
-                        window.set_maximized(false);
-                        window.set_fullscreen(false);
-                        window.set_tags(tag::get("IV"));
-                    } else {
-                        window.set_maximized(true);
-                        window.set_tags(tag::get("I"));
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        // Add borders to already existing windows.
-        window::get_all().for_each(apply_window_rules);
-
-        // Add borders to new windows.
-        window::add_window_rule(apply_window_rules);
+        .decorate()
     }
+
+    fn apply_window_rules(window: WindowHandle) {
+        window.set_decoration_mode(window::DecorationMode::ServerSide);
+
+        #[cfg(feature = "snowcap")]
+        make_fb(&window);
+
+        window.set_vrr_demand(VrrDemand::when_fullscreen());
+
+        match &*window.app_id() {
+            "firefox" => {
+                window.set_maximized(true);
+                window.set_tags(tag::get("II"));
+            }
+            "org.wezfurlong.wezterm" => {
+                window.set_tags(tag::get("VI"));
+            }
+            "emacs" => {
+                if window.title().contains("emacsclient") {
+                    window.set_maximized(false);
+                    window.set_fullscreen(false);
+                    window.set_tags(tag::get("IV"));
+                } else {
+                    window.set_maximized(true);
+                    window.set_tags(tag::get("I"));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Add borders to already existing windows.
+    window::get_all().for_each(apply_window_rules);
+
+    // Add borders to new windows.
+    window::add_window_rule(apply_window_rules);
 
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
