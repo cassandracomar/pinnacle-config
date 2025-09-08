@@ -648,14 +648,7 @@ async fn config() {
             .decorate()
         }
 
-        // Add borders to already existing windows.
-        for win in window::get_all() {
-            make_fb(&win);
-            win.set_vrr_demand(VrrDemand::when_fullscreen());
-        }
-
-        // Add borders to new windows.
-        window::add_window_rule(move |window| {
+        fn apply_window_rules(window: WindowHandle) {
             window.set_decoration_mode(window::DecorationMode::ServerSide);
             make_fb(&window);
             window.set_vrr_demand(VrrDemand::when_fullscreen());
@@ -680,7 +673,13 @@ async fn config() {
                 }
                 _ => {}
             }
-        });
+        }
+
+        // Add borders to already existing windows.
+        window::get_all().for_each(apply_window_rules);
+
+        // Add borders to new windows.
+        window::add_window_rule(apply_window_rules);
     }
 
     // Focus outputs when the pointer enters them
