@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
 use pinnacle_api::input::Keysym;
+use pinnacle_api::input::libinput::DeviceHandle;
 use pinnacle_api::input::{Mod, MouseButton};
 use pinnacle_api::layout;
 use pinnacle_api::layout::LayoutGenerator;
@@ -14,6 +15,7 @@ use pinnacle_api::layout::generators::Cycle;
 use pinnacle_api::layout::generators::MasterStack;
 use pinnacle_api::output;
 use pinnacle_api::process::Command;
+use pinnacle_api::signal::InputSignal;
 use pinnacle_api::signal::OutputSignal;
 use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
@@ -616,12 +618,15 @@ async fn config() {
             .description(format!("Toggle tag {tag_name} on the focused window"));
     }
 
-    input::libinput::for_each_device(|device| {
+    fn prep_devices(device: &DeviceHandle) {
         // Enable natural scroll for touchpads
         if device.device_type().is_touchpad() {
             device.set_natural_scroll(true);
         }
-    });
+    }
+
+    input::libinput::for_each_device(prep_devices);
+    input::connect_signal(InputSignal::DeviceAdded(Box::new(prep_devices)));
 
     #[cfg(feature = "snowcap")]
     use pinnacle_api::{
