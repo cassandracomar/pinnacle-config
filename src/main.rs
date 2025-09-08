@@ -625,13 +625,12 @@ async fn config() {
     #[cfg(feature = "snowcap")]
     {
         use pinnacle_api::{
-            experimental::snowcap_api::decoration::DecorationHandle,
+            experimental::snowcap_api::{decoration::DecorationHandle, widget::Color},
             snowcap::{FocusBorder, FocusBorderMessage},
+            window::VrrDemand,
         };
 
         fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
-            use pinnacle_api::experimental::snowcap_api::widget::Color;
-
             FocusBorder {
                 unfocused_color: Color::rgb(
                     (0x3c as f32) / (0xff as f32),
@@ -652,12 +651,14 @@ async fn config() {
         // Add borders to already existing windows.
         for win in window::get_all() {
             make_fb(&win);
+            win.set_vrr_demand(VrrDemand::when_fullscreen());
         }
 
         // Add borders to new windows.
         window::add_window_rule(move |window| {
             window.set_decoration_mode(window::DecorationMode::ServerSide);
             make_fb(&window);
+            window.set_vrr_demand(VrrDemand::when_fullscreen());
 
             match &*window.app_id() {
                 "firefox" => {
