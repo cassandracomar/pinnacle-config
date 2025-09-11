@@ -21,6 +21,7 @@ use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
 use pinnacle_api::window;
+use pinnacle_api::window::VrrDemand;
 use pinnacle_api::window::WindowHandle;
 
 async fn config() {
@@ -659,9 +660,7 @@ async fn config() {
         #[cfg(feature = "snowcap")]
         make_fb(&window);
 
-        // if &*window.app_id() != "firefox" {
-        //     window.set_vrr_demand(VrrDemand::when_fullscreen());
-        // }
+        window.set_vrr_demand(VrrDemand::when_fullscreen());
 
         match &*window.app_id() {
             "firefox" => {
