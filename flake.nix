@@ -7,7 +7,7 @@
     pkgs = import nixpkgs {
       inherit system;
       overlays = [
-        pinnacle.overlays.${system}.default
+        pinnacle.overlays.default
         (final: prev: {
           pinnacle-config = prev.pinnacle.buildRustConfig {
             pname = "pinnacle-config";
@@ -25,7 +25,7 @@
       default = pkgs.pinnacle-config;
     };
 
-    devShells.${system}.default = pkgs.mkShell {
+    devShells.x86_64-linux.default = pkgs.mkShell {
       packages = with pkgs; [rustc cargo rust-analyzer clang protobuf libxkbcommon pkg-config clippy];
     };
   };
