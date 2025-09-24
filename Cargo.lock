@@ -514,9 +514,9 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "libc"
-version = "0.2.175"
+version = "0.2.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
+checksum = "58f929b4d672ea937a23a1ab494143d968337a5f47e56d0815df1e0890ddf174"
 
 [[package]]
 name = "linux-raw-sys"
@@ -680,7 +680,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pinnacle-api"
 version = "0.1.0"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#d1d0ab1225d4440c6c89874c2dd1e715eedb13f1"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#178d7c0764dcb861c5e61870d444200e4a8db345"
 dependencies = [
  "bitflags",
  "futures",
@@ -700,7 +700,7 @@ dependencies = [
 [[package]]
 name = "pinnacle-api-defs"
 version = "0.0.1"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#d1d0ab1225d4440c6c89874c2dd1e715eedb13f1"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#178d7c0764dcb861c5e61870d444200e4a8db345"
 dependencies = [
  "prost",
  "tonic",
@@ -926,7 +926,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "snowcap-api"
 version = "0.1.0"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#d1d0ab1225d4440c6c89874c2dd1e715eedb13f1"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#178d7c0764dcb861c5e61870d444200e4a8db345"
 dependencies = [
  "from_variants",
  "futures",
@@ -945,7 +945,7 @@ dependencies = [
 [[package]]
 name = "snowcap-api-defs"
 version = "0.1.0"
-source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#d1d0ab1225d4440c6c89874c2dd1e715eedb13f1"
+source = "git+http://github.com/cassandracomar/pinnacle?branch=feat%2Fext-workspace-v1#178d7c0764dcb861c5e61870d444200e4a8db345"
 dependencies = [
  "prost",
  "tonic",
@@ -1009,9 +1009,9 @@ checksum = "0bf256ce5efdfa370213c1dabab5935a12e49f2c58d15e9eac2870d3b4f27263"
 
 [[package]]
 name = "tempfile"
-version = "3.22.0"
+version = "3.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84fa4d11fadde498443cca10fd3ac23c951f0dc59e080e9f4b93d4df4e4eea53"
+checksum = "2d31c77bdf42a745371d260a26ca7163f1e0924b64afa0b688e61b5a9fa02f16"
 dependencies = [
  "fastrand",
  "getrandom",
