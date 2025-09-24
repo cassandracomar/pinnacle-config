@@ -24,6 +24,7 @@ use pinnacle_api::window;
 use pinnacle_api::window::VrrDemand;
 use pinnacle_api::window::WindowHandle;
 
+/// `config` sets up the pinnacle configuration via the `pinnacle_api`
 async fn config() {
     // Change the mod key to `Alt` when running as a nested window.
     let mod_key = Mod::ALT;
@@ -132,14 +133,6 @@ async fn config() {
         })
         .group("Window")
         .description("Close the focused window");
-
-    // `mod_key + Return` spawns a terminal
-    input::keybind(mod_key, Keysym::Return)
-        .on_press(move || {
-            Command::new(terminal).spawn();
-        })
-        .group("Process")
-        .description("Spawn a terminal");
 
     input::keybind(mod_key | Mod::SHIFT, 'p')
         .on_press(move || {
@@ -530,12 +523,14 @@ async fn config() {
         .group("Window")
         .description("increase master pane size");
 
-    let frame_name = "(name . \"emacsclient\")";
+    let terminal_frame_name = "(name . \"emacsclient\")";
+    let mu4e_frame_name = "(name . \"mu4e\")";
     let fullscreen = "(fullscreen . fullheight)";
     let auto_raise = "(auto-raise . nil)";
     let auto_lower = "(auto-lower . nil)";
     let wait_for_wm = "(wait-for-wm . t)";
 
+    // `M-S-RET` spawns an eat terminal
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
             Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
@@ -543,7 +538,7 @@ async fn config() {
                     "-c",
                     "-F",
                     &*format!(
-                        "({frame_name} {fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"
+                        "({terminal_frame_name} {fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"
                     ),
                     "-e",
                     "(+eat/here)",
@@ -552,6 +547,16 @@ async fn config() {
         })
         .group("Process")
         .description("Open an emacs terminal");
+
+    // `M-RET` spawns mu4e
+    input::keybind(mod_key, Keysym::Return)
+        .on_press(move || {
+            Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
+                .args(["-c", "-F", &*format!("({mu4e_frame_name})"), "-e", "(mu4e)"])
+                .spawn();
+        })
+        .group("Process")
+        .description("Open mu4e");
 
     //------------------------
     // Tags                  |
@@ -675,7 +680,11 @@ async fn config() {
                     window.set_maximized(false);
                     window.set_fullscreen(false);
                     window.set_tags(tag::get("IV"));
-                } else {
+                } else if window.title().contains("mu4e") {
+                    window.set_maximized(true);
+                    window.set_tags(tag::get("III"));
+                }
+                else {
                     window.set_maximized(true);
                     window.set_tags(tag::get("I"));
                 }
