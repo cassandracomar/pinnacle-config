@@ -571,9 +571,18 @@ async fn config() {
         output.set_vrr(output::Vrr::OnDemand);
 
         let mut tags = tag::add(output, tag_names);
+        let output_name = output.name();
+        let monitor = format!("monitor={output_name}");
         tags.next().unwrap().set_active(true);
         Command::new("eww")
-            .args(["open", "--screen", &*output.name(), "win1"])
+            .args([
+                "open",
+                "--screen",
+                &*output.name(),
+                "primary",
+                "--arg",
+                &*monitor,
+            ])
             .spawn();
     });
 
