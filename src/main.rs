@@ -551,7 +551,7 @@ async fn config() {
     // `M-RET` spawns mu4e
     input::keybind(mod_key, Keysym::Return)
         .on_press(move || {
-            Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
+            Command::new("emacsclient")
                 .args(["-c", "-F", &*format!("({mu4e_frame_name})"), "-e", "(mu4e)"])
                 .spawn();
         })
