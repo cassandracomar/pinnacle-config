@@ -2,7 +2,11 @@
   inputs.nixpkgs.url = "github:nixos/nixpkgs";
   inputs.pinnacle.url = "github:cassandracomar/pinnacle/feat/ext-workspace-v1";
 
-  outputs = {nixpkgs, pinnacle, ...}: let
+  outputs = {
+    nixpkgs,
+    pinnacle,
+    ...
+  }: let
     system = "x86_64-linux";
     pkgs = import nixpkgs {
       inherit system;
@@ -26,7 +30,7 @@
     };
 
     devShells.x86_64-linux.default = pkgs.mkShell {
-      packages = with pkgs; [rustc cargo rust-analyzer clang protobuf libxkbcommon pkg-config clippy];
+      packages = with pkgs; [rustc cargo rust-analyzer clang protobuf libxkbcommon pkg-config clippy rustfmt];
     };
   };
 }
