@@ -533,7 +533,7 @@ async fn config() {
     // `M-S-RET` spawns an eat terminal
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
-            Command::new("/etc/profiles/per-user/cassandra/bin/emacsclient")
+            Command::new("emacsclient")
                 .args([
                     "-c",
                     "-F",
@@ -683,8 +683,7 @@ async fn config() {
                 } else if window.title().contains("mu4e") {
                     window.set_maximized(true);
                     window.set_tags(tag::get("III"));
-                }
-                else {
+                } else {
                     window.set_maximized(true);
                     window.set_tags(tag::get("I"));
                 }
