@@ -639,7 +639,7 @@ async fn config() {
         // Enable natural scroll for touchpads
         if device.device_type().is_touchpad() {
             device.set_accel_profile(AccelProfile::Adaptive);
-            device.set_accel_speed(0.75f64);
+            device.set_accel_speed(0.6f64);
             device.set_natural_scroll(true);
             device.set_click_method(ClickMethod::Clickfinger);
         }
