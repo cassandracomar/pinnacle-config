@@ -7,6 +7,7 @@ use pinnacle_api::input::Keysym;
 use pinnacle_api::input::libinput::AccelProfile;
 use pinnacle_api::input::libinput::ClickMethod;
 use pinnacle_api::input::libinput::DeviceHandle;
+use pinnacle_api::input::libinput::TapButtonMap;
 use pinnacle_api::input::{Mod, MouseButton};
 use pinnacle_api::layout;
 use pinnacle_api::layout::LayoutGenerator;
@@ -638,10 +639,14 @@ async fn config() {
     fn prep_devices(device: &DeviceHandle) {
         // Enable natural scroll for touchpads
         if device.device_type().is_touchpad() {
+            device.set_tap(true);
+            device.set_natural_scroll(true);
+            device.set_tap_drag(false);
+
+            device.set_click_method(ClickMethod::Clickfinger);
+            device.set_tap_button_map(TapButtonMap::LeftRightMiddle);
             device.set_accel_profile(AccelProfile::Adaptive);
             device.set_accel_speed(0.6f64);
-            device.set_natural_scroll(true);
-            device.set_click_method(ClickMethod::Clickfinger);
         }
     }
 
