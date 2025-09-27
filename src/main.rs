@@ -4,6 +4,8 @@ use std::sync::Mutex;
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
 use pinnacle_api::input::Keysym;
+use pinnacle_api::input::libinput::AccelProfile;
+use pinnacle_api::input::libinput::ClickMethod;
 use pinnacle_api::input::libinput::DeviceHandle;
 use pinnacle_api::input::{Mod, MouseButton};
 use pinnacle_api::layout;
@@ -636,7 +638,10 @@ async fn config() {
     fn prep_devices(device: &DeviceHandle) {
         // Enable natural scroll for touchpads
         if device.device_type().is_touchpad() {
+            device.set_accel_profile(AccelProfile::Adaptive);
+            device.set_accel_speed(0.75f64);
             device.set_natural_scroll(true);
+            device.set_click_method(ClickMethod::Clickfinger);
         }
     }
 
