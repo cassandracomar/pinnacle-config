@@ -501,7 +501,12 @@ async fn config() {
                         .in_direction(Direction::Left)
                         .next()
                         .unwrap_or(focused);
-                    master.resize_tile(0, -10, 0, 0);
+                    let resize = master
+                        .output()
+                        .and_then(|output| output.current_mode())
+                        .map(|mode| (mode.size.w as i32) / 10)
+                        .unwrap_or(384);
+                    master.resize_tile(0, -1 * resize, 0, 0);
                     requester.request_layout();
                 }
             }
@@ -518,7 +523,12 @@ async fn config() {
                         .in_direction(Direction::Left)
                         .next()
                         .unwrap_or(focused);
-                    master.resize_tile(0, 10, 0, 0);
+                    let resize = master
+                        .output()
+                        .and_then(|output| output.current_mode())
+                        .map(|mode| (mode.size.w as i32) / 10)
+                        .unwrap_or(384);
+                    master.resize_tile(0, resize, 0, 0);
                     requester.request_layout();
                 }
             }
