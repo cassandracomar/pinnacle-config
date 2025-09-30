@@ -711,11 +711,15 @@ async fn config() {
                     window.set_tags(tag::get("IV"));
                 } else if window.title().contains("mu4e") {
                     window.set_maximized(true);
-                    window.set_tags(tag::get("III"));
+                    window.set_tags(tag::get("V"));
                 } else {
                     window.set_maximized(true);
                     window.set_tags(tag::get("I"));
                 }
+            }
+            "Slack" => {
+                window.set_tags(tag::get("III"));
+                window.set_maximized(true);
             }
             _ => {}
         }
