@@ -1,6 +1,6 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs";
-  inputs.pinnacle.url = "github:cassandracomar/pinnacle/feat/ext-workspace-v1";
+  inputs.pinnacle.url = "github:cassandracomar/pinnacle/fix/nixGL";
 
   outputs = {
     nixpkgs,
