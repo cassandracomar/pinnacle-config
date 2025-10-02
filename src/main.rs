@@ -656,7 +656,7 @@ async fn config() {
             device.set_click_method(ClickMethod::Clickfinger);
             device.set_tap_button_map(TapButtonMap::LeftRightMiddle);
             device.set_accel_profile(AccelProfile::Flat);
-            device.set_accel_speed(0.6f64);
+            device.set_accel_speed(0.8f64);
         }
     }
 
