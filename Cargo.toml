@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-pinnacle-api = { git = "http://github.com/cassandracomar/pinnacle", branch = "fix/nixGL", default-features = false, version = "0.1.0" }
+pinnacle-api = { git = "http://github.com/pinnacle-comp/pinnacle", branch = "main", default-features = false, version = "0.1.0" }
 
 [features]
 default = ["snowcap"]
