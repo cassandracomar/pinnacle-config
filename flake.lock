@@ -78,11 +78,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1761064095,
-        "narHash": "sha256-cx5dnoOJ3CTGvs8w+awNxOWo6Hr8s0YBWWh3+V9f/9s=",
+        "lastModified": 1761122000,
+        "narHash": "sha256-NH1cIJfH2H4IHHg4CDsbP9h1rlS5M1NMY0BEY0ingsk=",
         "owner": "pinnacle-comp",
         "repo": "pinnacle",
-        "rev": "674cc4e7bcbd3c7f9f798be9ce2ea90845e41573",
+        "rev": "f751e5dad86036f6b63f2906475fc4f1cf199488",
         "type": "github"
       },
       "original": {
