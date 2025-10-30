@@ -780,12 +780,20 @@ async fn config() {
         }
     })));
 
+    window::connect_signal(WindowSignal::LayoutModeChanged(Box::new({
+        let requester = layout_requester.clone();
+        move |_win, _layout_mode| {
+            requester.request_layout();
+        }
+    })));
+
     window::connect_signal(WindowSignal::Destroyed(Box::new({
         let requester = layout_requester.clone();
         move |_win, _title, _appid| {
             requester.request_layout();
         }
     })));
+
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
         output.focus();
