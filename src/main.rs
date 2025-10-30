@@ -729,7 +729,13 @@ async fn config() {
     window::get_all().for_each(apply_window_rules);
 
     // Add borders to new windows.
-    window::add_window_rule(apply_window_rules);
+    window::add_window_rule({
+        let requester = layout_requester.clone();
+        move |win| {
+            apply_window_rules(win);
+            requester.request_layout();
+        }
+    });
 
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
