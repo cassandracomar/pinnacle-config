@@ -20,6 +20,7 @@ use pinnacle_api::output;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::InputSignal;
 use pinnacle_api::signal::OutputSignal;
+use pinnacle_api::signal::WindowSignal;
 use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
@@ -736,6 +737,13 @@ async fn config() {
             requester.request_layout();
         }
     });
+
+    window::connect_signal(WindowSignal::Created(Box::new({
+        let requester = layout_requester.clone();
+        move |_win| {
+            requester.request_layout();
+        }
+    })));
 
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
