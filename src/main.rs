@@ -603,9 +603,13 @@ async fn config() {
     for (tag_name, index) in tag_names.into_iter().zip(('1'..='9').chain('0'..='0')) {
         // `mod_key + 1-9` switches to tag "1" to "9"
         input::keybind(mod_key, index)
-            .on_press(move || {
-                if let Some(tag) = tag::get(tag_name) {
-                    tag.switch_to();
+            .on_press({
+                let requester = layout_requester.clone();
+                move || {
+                    if let Some(tag) = tag::get(tag_name) {
+                        tag.switch_to();
+                        requester.request_layout();
+                    }
                 }
             })
             .group("Tag")
@@ -613,9 +617,13 @@ async fn config() {
 
         // `mod_key + ctrl + 1-9` toggles tag "1" to "9"
         input::keybind(mod_key | Mod::CTRL, index)
-            .on_press(move || {
-                if let Some(tag) = tag::get(tag_name) {
-                    tag.toggle_active();
+            .on_press({
+                let requester = layout_requester.clone();
+                move || {
+                    if let Some(tag) = tag::get(tag_name) {
+                        tag.toggle_active();
+                        requester.request_layout();
+                    }
                 }
             })
             .group("Tag")
@@ -623,12 +631,16 @@ async fn config() {
 
         // `mod_key + shift + 1-9` moves the focused window to tag "1" to "9"
         input::keybind(mod_key | Mod::SHIFT, index)
-            .on_press(move || {
-                if let Some(tag) = tag::get(tag_name)
-                    && let Some(win) = window::get_focused()
-                {
-                    win.move_to_tag(&tag);
-                    tag.switch_to();
+            .on_press({
+                let requester = layout_requester.clone();
+                move || {
+                    if let Some(tag) = tag::get(tag_name)
+                        && let Some(win) = window::get_focused()
+                    {
+                        win.move_to_tag(&tag);
+                        tag.switch_to();
+                        requester.request_layout();
+                    }
                 }
             })
             .group("Tag")
@@ -636,11 +648,15 @@ async fn config() {
 
         // `mod_key + ctrl + shift + 1-9` toggles tag "1" to "9" on the focused window
         input::keybind(mod_key | Mod::CTRL | Mod::SHIFT, index)
-            .on_press(move || {
-                if let Some(tg) = tag::get(tag_name)
-                    && let Some(win) = window::get_focused()
-                {
-                    win.toggle_tag(&tg);
+            .on_press({
+                let requester = layout_requester.clone();
+                move || {
+                    if let Some(tg) = tag::get(tag_name)
+                        && let Some(win) = window::get_focused()
+                    {
+                        win.toggle_tag(&tg);
+                        requester.request_layout();
+                    }
                 }
             })
             .group("Tag")
@@ -745,6 +761,19 @@ async fn config() {
         }
     })));
 
+    window::connect_signal(WindowSignal::Focused(Box::new({
+        let requester = layout_requester.clone();
+        move |_win| {
+            requester.request_layout();
+        }
+    })));
+
+    window::connect_signal(WindowSignal::Destroyed(Box::new({
+        let requester = layout_requester.clone();
+        move |_win, _title, _appid| {
+            requester.request_layout();
+        }
+    })));
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
         output.focus();
@@ -760,6 +789,7 @@ async fn config() {
 
     Command::new("eww").args(["daemon"]).once().spawn();
     Command::new(terminal).once().spawn();
+    layout_requester.request_layout();
 }
 
 pinnacle_api::main!(config);
