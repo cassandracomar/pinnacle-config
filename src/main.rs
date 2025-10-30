@@ -152,39 +152,6 @@ async fn config() {
         .group("Process")
         .description("Bitwarden Passwords");
 
-    // `mod_key + ctrl + space` toggles floating
-    input::keybind(mod_key | Mod::CTRL, Keysym::space)
-        .on_press(|| {
-            if let Some(window) = window::get_focused() {
-                window.toggle_floating();
-                window.raise();
-            }
-        })
-        .group("Window")
-        .description("Toggle floating on the focused window");
-
-    // `mod_key + f` toggles fullscreen
-    input::keybind(mod_key, 'f')
-        .on_press(|| {
-            if let Some(window) = window::get_focused() {
-                window.toggle_fullscreen();
-                window.raise();
-            }
-        })
-        .group("Window")
-        .description("Toggle fullscreen on the focused window");
-
-    // `mod_key + m` toggles maximized
-    input::keybind(mod_key, 'm')
-        .on_press(|| {
-            if let Some(window) = window::get_focused() {
-                window.toggle_maximized();
-                window.raise();
-            }
-        })
-        .group("Window")
-        .description("Toggle maximized on the focused window");
-
     input::keybind(mod_key, 'p')
         .on_press(|| {
             Command::new("rofi")
@@ -401,6 +368,51 @@ async fn config() {
             LayoutResponse { root_node, tree_id }
         }
     });
+
+    // `mod_key + ctrl + space` toggles floating
+    input::keybind(mod_key | Mod::CTRL, Keysym::space)
+        .on_press({
+            let requester = layout_requester.clone();
+            move || {
+                if let Some(window) = window::get_focused() {
+                    window.toggle_floating();
+                    window.raise();
+                    requester.request_layout();
+                }
+            }
+        })
+        .group("Window")
+        .description("Toggle floating on the focused window");
+
+    // `mod_key + f` toggles fullscreen
+    input::keybind(mod_key, 'f')
+        .on_press({
+            let requester = layout_requester.clone();
+            move || {
+                if let Some(window) = window::get_focused() {
+                    window.toggle_fullscreen();
+                    window.raise();
+                    requester.request_layout();
+                }
+            }
+        })
+        .group("Window")
+        .description("Toggle fullscreen on the focused window");
+
+    // `mod_key + m` toggles maximized
+    input::keybind(mod_key, 'm')
+        .on_press({
+            let requester = layout_requester.clone();
+            move || {
+                if let Some(window) = window::get_focused() {
+                    window.toggle_maximized();
+                    window.raise();
+                    requester.request_layout();
+                }
+            }
+        })
+        .group("Window")
+        .description("Toggle maximized on the focused window");
 
     // `mod_key + space` cycles to the next layout
     input::keybind(mod_key, Keysym::space)
