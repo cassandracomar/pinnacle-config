@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-pinnacle-api = { git = "http://github.com/pinnacle-comp/pinnacle", branch = "main", default-features = false }
+pinnacle-api = { git = "http://github.com/cassandracomar/pinnacle", branch = "fix/rockspec-path", default-features = false }
 
 [features]
 default = ["snowcap"]
