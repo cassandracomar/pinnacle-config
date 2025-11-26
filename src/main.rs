@@ -28,6 +28,31 @@ use pinnacle_api::window;
 use pinnacle_api::window::VrrDemand;
 use pinnacle_api::window::WindowHandle;
 
+#[cfg(feature = "snowcap")]
+use pinnacle_api::{
+    experimental::snowcap_api::{decoration::DecorationHandle, widget::Color},
+    snowcap::{FocusBorder, FocusBorderMessage},
+};
+
+#[cfg(feature = "snowcap")]
+fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
+    FocusBorder {
+        unfocused_color: Color::rgb(
+            (0x3c as f32) / (0xff as f32),
+            (0x2c as f32) / (0xff as f32),
+            (0x1c as f32) / (0xff as f32),
+        ),
+        focused_color: Color::rgb(
+            (0xee as f32) / (0xff as f32),
+            (0xde as f32) / (0xff as f32),
+            (0xce as f32) / (0xff as f32),
+        ),
+        thickness: 2,
+        ..FocusBorder::new(win)
+    }
+    .decorate()
+}
+
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
 async fn config() {
     // Change the mod key to `Alt` when running as a nested window.
@@ -393,6 +418,7 @@ async fn config() {
                     window.toggle_fullscreen();
                     window.raise();
                     requester.request_layout();
+                    make_fb(&window);
                 }
             }
         })
@@ -408,6 +434,7 @@ async fn config() {
                     window.toggle_maximized();
                     window.raise();
                     requester.request_layout();
+                    make_fb(&window);
                 }
             }
         })
@@ -691,31 +718,6 @@ async fn config() {
 
     input::libinput::for_each_device(prep_devices);
     input::connect_signal(InputSignal::DeviceAdded(Box::new(prep_devices)));
-
-    #[cfg(feature = "snowcap")]
-    use pinnacle_api::{
-        experimental::snowcap_api::{decoration::DecorationHandle, widget::Color},
-        snowcap::{FocusBorder, FocusBorderMessage},
-    };
-
-    #[cfg(feature = "snowcap")]
-    fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
-        FocusBorder {
-            unfocused_color: Color::rgb(
-                (0x3c as f32) / (0xff as f32),
-                (0x2c as f32) / (0xff as f32),
-                (0x1c as f32) / (0xff as f32),
-            ),
-            focused_color: Color::rgb(
-                (0xee as f32) / (0xff as f32),
-                (0xde as f32) / (0xff as f32),
-                (0xce as f32) / (0xff as f32),
-            ),
-            thickness: 2,
-            ..FocusBorder::new(win)
-        }
-        .decorate()
-    }
 
     fn apply_window_rules(window: WindowHandle) {
         window.set_decoration_mode(window::DecorationMode::ServerSide);
