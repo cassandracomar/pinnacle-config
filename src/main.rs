@@ -720,13 +720,6 @@ async fn config() {
     input::connect_signal(InputSignal::DeviceAdded(Box::new(prep_devices)));
 
     fn apply_window_rules(window: WindowHandle) {
-        window.set_decoration_mode(window::DecorationMode::ServerSide);
-
-        #[cfg(feature = "snowcap")]
-        make_fb(&window);
-
-        window.set_vrr_demand(VrrDemand::when_fullscreen());
-
         match &*window.app_id() {
             "firefox" => {
                 window.set_maximized(true);
@@ -754,6 +747,13 @@ async fn config() {
             }
             _ => {}
         }
+
+        window.set_decoration_mode(window::DecorationMode::ServerSide);
+
+        #[cfg(feature = "snowcap")]
+        make_fb(&window);
+
+        window.set_vrr_demand(VrrDemand::when_fullscreen());
     }
 
     // Add borders to already existing windows.
@@ -770,22 +770,25 @@ async fn config() {
 
     window::connect_signal(WindowSignal::Created(Box::new({
         let requester = layout_requester.clone();
-        move |_win| {
+        move |win| {
             requester.request_layout();
+            make_fb(win);
         }
     })));
 
     window::connect_signal(WindowSignal::Focused(Box::new({
         let requester = layout_requester.clone();
-        move |_win| {
+        move |win| {
             requester.request_layout();
+            make_fb(win);
         }
     })));
 
     window::connect_signal(WindowSignal::LayoutModeChanged(Box::new({
         let requester = layout_requester.clone();
-        move |_win, _layout_mode| {
+        move |win, _layout_mode| {
             requester.request_layout();
+            make_fb(win);
         }
     })));
 
