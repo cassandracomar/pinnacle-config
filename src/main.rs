@@ -418,6 +418,7 @@ async fn config() {
                     window.toggle_fullscreen();
                     window.raise();
                     requester.request_layout();
+                    #[cfg(feature = "snowcap")]
                     make_fb(&window);
                 }
             }
@@ -434,6 +435,7 @@ async fn config() {
                     window.toggle_maximized();
                     window.raise();
                     requester.request_layout();
+                    #[cfg(feature = "snowcap")]
                     make_fb(&window);
                 }
             }
@@ -756,9 +758,6 @@ async fn config() {
         window.set_vrr_demand(VrrDemand::when_fullscreen());
     }
 
-    // Add borders to already existing windows.
-    window::get_all().for_each(apply_window_rules);
-
     // Add borders to new windows.
     window::add_window_rule({
         let requester = layout_requester.clone();
@@ -772,6 +771,7 @@ async fn config() {
         let requester = layout_requester.clone();
         move |win| {
             requester.request_layout();
+            #[cfg(feature = "snowcap")]
             make_fb(win);
         }
     })));
@@ -780,6 +780,7 @@ async fn config() {
         let requester = layout_requester.clone();
         move |win| {
             requester.request_layout();
+            #[cfg(feature = "snowcap")]
             make_fb(win);
         }
     })));
@@ -788,6 +789,7 @@ async fn config() {
         let requester = layout_requester.clone();
         move |win, _layout_mode| {
             requester.request_layout();
+            #[cfg(feature = "snowcap")]
             make_fb(win);
         }
     })));
@@ -814,6 +816,9 @@ async fn config() {
 
     Command::new("eww").args(["daemon"]).once().spawn();
     Command::new(terminal).once().spawn();
+
+    // Add borders to already existing windows.
+    window::get_all().for_each(apply_window_rules);
     layout_requester.request_layout();
 }
 
