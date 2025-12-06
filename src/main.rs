@@ -503,6 +503,8 @@ async fn config() {
             focused.swap(next);
             focused.set_focused(true);
             requester.request_layout();
+            make_fb(focused);
+            make_fb(next);
         }
     }
 
