@@ -29,13 +29,10 @@ use pinnacle_api::window::VrrDemand;
 use pinnacle_api::window::WindowHandle;
 
 #[cfg(feature = "snowcap")]
-use pinnacle_api::{
-    experimental::snowcap_api::{decoration::DecorationHandle, widget::Color},
-    snowcap::{FocusBorder, FocusBorderMessage},
-};
+use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
 
 #[cfg(feature = "snowcap")]
-fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
+fn make_fb(win: &WindowHandle) {
     FocusBorder {
         unfocused_color: Color::rgb(
             (0x3c as f32) / (0xff as f32),
@@ -51,6 +48,12 @@ fn make_fb(win: &WindowHandle) -> DecorationHandle<FocusBorderMessage> {
         ..FocusBorder::new(win)
     }
     .decorate()
+    .map_or_else(
+        |err| {
+            println!("failed to decorate window: {err}");
+        },
+        |_| (),
+    )
 }
 
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
