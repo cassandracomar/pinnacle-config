@@ -521,42 +521,36 @@ async fn config() {
         .description("shift window backwards");
 
     input::keybind(mod_key, 'h')
-        .on_press({
-            let requester = layout_requester.clone();
-            move || {
-                if let Some(focused) = window::get_focused() {
-                    let master = focused
-                        .in_direction(Direction::Left)
-                        .next()
-                        .unwrap_or(focused);
-                    let resize = master
-                        .output()
-                        .and_then(|output| output.current_mode())
-                        .map(|mode| (mode.size.w as i32) / 10)
-                        .unwrap_or(384);
-                    master.resize_tile(0, -1 * resize, 0, 0);
-                }
+        .on_press(move || {
+            if let Some(focused) = window::get_focused() {
+                let master = focused
+                    .in_direction(Direction::Left)
+                    .next()
+                    .unwrap_or(focused);
+                let resize = master
+                    .output()
+                    .and_then(|output| output.current_mode())
+                    .map(|mode| (mode.size.w as i32) / 10)
+                    .unwrap_or(384);
+                master.resize_tile(0, -1 * resize, 0, 0);
             }
         })
         .group("Window")
         .description("decrease master pane size");
 
     input::keybind(mod_key, 'l')
-        .on_press({
-            let requester = layout_requester.clone();
-            move || {
-                if let Some(focused) = window::get_focused() {
-                    let master = focused
-                        .in_direction(Direction::Left)
-                        .next()
-                        .unwrap_or(focused);
-                    let resize = master
-                        .output()
-                        .and_then(|output| output.current_mode())
-                        .map(|mode| (mode.size.w as i32) / 10)
-                        .unwrap_or(384);
-                    master.resize_tile(0, resize, 0, 0);
-                }
+        .on_press(move || {
+            if let Some(focused) = window::get_focused() {
+                let master = focused
+                    .in_direction(Direction::Left)
+                    .next()
+                    .unwrap_or(focused);
+                let resize = master
+                    .output()
+                    .and_then(|output| output.current_mode())
+                    .map(|mode| (mode.size.w as i32) / 10)
+                    .unwrap_or(384);
+                master.resize_tile(0, resize, 0, 0);
             }
         })
         .group("Window")
@@ -628,12 +622,9 @@ async fn config() {
     for (tag_name, index) in tag_names.into_iter().zip(('1'..='9').chain('0'..='0')) {
         // `mod_key + 1-9` switches to tag "1" to "9"
         input::keybind(mod_key, index)
-            .on_press({
-                let requester = layout_requester.clone();
-                move || {
-                    if let Some(tag) = tag::get(tag_name) {
-                        tag.switch_to();
-                    }
+            .on_press(move || {
+                if let Some(tag) = tag::get(tag_name) {
+                    tag.switch_to();
                 }
             })
             .group("Tag")
@@ -641,12 +632,9 @@ async fn config() {
 
         // `mod_key + ctrl + 1-9` toggles tag "1" to "9"
         input::keybind(mod_key | Mod::CTRL, index)
-            .on_press({
-                let requester = layout_requester.clone();
-                move || {
-                    if let Some(tag) = tag::get(tag_name) {
-                        tag.toggle_active();
-                    }
+            .on_press(move || {
+                if let Some(tag) = tag::get(tag_name) {
+                    tag.toggle_active();
                 }
             })
             .group("Tag")
@@ -654,15 +642,12 @@ async fn config() {
 
         // `mod_key + shift + 1-9` moves the focused window to tag "1" to "9"
         input::keybind(mod_key | Mod::SHIFT, index)
-            .on_press({
-                let requester = layout_requester.clone();
-                move || {
-                    if let Some(tag) = tag::get(tag_name)
-                        && let Some(win) = window::get_focused()
-                    {
-                        win.move_to_tag(&tag);
-                        tag.switch_to();
-                    }
+            .on_press(move || {
+                if let Some(tag) = tag::get(tag_name)
+                    && let Some(win) = window::get_focused()
+                {
+                    win.move_to_tag(&tag);
+                    tag.switch_to();
                 }
             })
             .group("Tag")
@@ -670,14 +655,11 @@ async fn config() {
 
         // `mod_key + ctrl + shift + 1-9` toggles tag "1" to "9" on the focused window
         input::keybind(mod_key | Mod::CTRL | Mod::SHIFT, index)
-            .on_press({
-                let requester = layout_requester.clone();
-                move || {
-                    if let Some(tg) = tag::get(tag_name)
-                        && let Some(win) = window::get_focused()
-                    {
-                        win.toggle_tag(&tg);
-                    }
+            .on_press(move || {
+                if let Some(tg) = tag::get(tag_name)
+                    && let Some(win) = window::get_focused()
+                {
+                    win.toggle_tag(&tg);
                 }
             })
             .group("Tag")
