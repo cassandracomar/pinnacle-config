@@ -12,7 +12,6 @@ use pinnacle_api::input::{Mod, MouseButton};
 use pinnacle_api::layout;
 use pinnacle_api::layout::LayoutGenerator;
 use pinnacle_api::layout::LayoutNode;
-use pinnacle_api::layout::LayoutRequester;
 use pinnacle_api::layout::LayoutResponse;
 use pinnacle_api::layout::generators::Cycle;
 use pinnacle_api::layout::generators::MasterStack;
@@ -20,7 +19,6 @@ use pinnacle_api::output;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::InputSignal;
 use pinnacle_api::signal::OutputSignal;
-use pinnacle_api::signal::WindowSignal;
 use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
@@ -482,10 +480,7 @@ async fn config() {
         .group("Layout")
         .description("Cycle the layout backward");
 
-    fn swap_windows(
-        layout_requester: &LayoutRequester,
-    ) -> impl FnOnce(&WindowHandle, &WindowHandle) {
-        let requester = layout_requester.clone();
+    fn swap_windows() -> impl FnOnce(&WindowHandle, &WindowHandle) {
         move |focused, next| {
             focused.swap(next);
             focused.set_focused(true);
@@ -493,29 +488,23 @@ async fn config() {
     }
 
     input::keybind(mod_key | Mod::SHIFT, 'j')
-        .on_press({
-            let requester = layout_requester.clone();
-            move || {
-                on_next_circular(
-                    window::get_focused(),
-                    CircleDirection::Clockwise,
-                    swap_windows(&requester),
-                );
-            }
+        .on_press(move || {
+            on_next_circular(
+                window::get_focused(),
+                CircleDirection::Clockwise,
+                swap_windows(),
+            );
         })
         .group("Window")
         .description("shift window forward");
 
     input::keybind(mod_key | Mod::SHIFT, 'k')
-        .on_press({
-            let requester = layout_requester.clone();
-            move || {
-                on_next_circular(
-                    window::get_focused(),
-                    CircleDirection::CounterClockwise,
-                    swap_windows(&requester),
-                );
-            }
+        .on_press(move || {
+            on_next_circular(
+                window::get_focused(),
+                CircleDirection::CounterClockwise,
+                swap_windows(),
+            );
         })
         .group("Window")
         .description("shift window backwards");
