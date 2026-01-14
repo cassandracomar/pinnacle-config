@@ -399,14 +399,10 @@ async fn config() {
 
     // `mod_key + ctrl + space` toggles floating
     input::keybind(mod_key | Mod::CTRL, Keysym::space)
-        .on_press({
-            let requester = layout_requester.clone();
-            move || {
-                if let Some(window) = window::get_focused() {
-                    window.toggle_floating();
-                    window.raise();
-                    requester.request_layout();
-                }
+        .on_press(move || {
+            if let Some(window) = window::get_focused() {
+                window.toggle_floating();
+                window.raise();
             }
         })
         .group("Window")
@@ -414,16 +410,10 @@ async fn config() {
 
     // `mod_key + f` toggles fullscreen
     input::keybind(mod_key, 'f')
-        .on_press({
-            let requester = layout_requester.clone();
-            move || {
-                if let Some(window) = window::get_focused() {
-                    window.toggle_fullscreen();
-                    window.raise();
-                    requester.request_layout();
-                    // #[cfg(feature = "snowcap")]
-                    // make_fb(&window);
-                }
+        .on_press(move || {
+            if let Some(window) = window::get_focused() {
+                window.toggle_fullscreen();
+                window.raise();
             }
         })
         .group("Window")
@@ -431,16 +421,10 @@ async fn config() {
 
     // `mod_key + m` toggles maximized
     input::keybind(mod_key, 'm')
-        .on_press({
-            let requester = layout_requester.clone();
-            move || {
-                if let Some(window) = window::get_focused() {
-                    window.toggle_maximized();
-                    window.raise();
-                    requester.request_layout();
-                    // #[cfg(feature = "snowcap")]
-                    // make_fb(&window);
-                }
+        .on_press(move || {
+            if let Some(window) = window::get_focused() {
+                window.toggle_maximized();
+                window.raise();
             }
         })
         .group("Window")
@@ -505,9 +489,6 @@ async fn config() {
         move |focused, next| {
             focused.swap(next);
             focused.set_focused(true);
-            // requester.request_layout();
-            // make_fb(focused);
-            // make_fb(next);
         }
     }
 
@@ -554,7 +535,6 @@ async fn config() {
                         .map(|mode| (mode.size.w as i32) / 10)
                         .unwrap_or(384);
                     master.resize_tile(0, -1 * resize, 0, 0);
-                    // requester.request_layout();
                 }
             }
         })
@@ -576,7 +556,6 @@ async fn config() {
                         .map(|mode| (mode.size.w as i32) / 10)
                         .unwrap_or(384);
                     master.resize_tile(0, resize, 0, 0);
-                    // requester.request_layout();
                 }
             }
         })
@@ -654,7 +633,6 @@ async fn config() {
                 move || {
                     if let Some(tag) = tag::get(tag_name) {
                         tag.switch_to();
-                        // requester.request_layout();
                     }
                 }
             })
@@ -668,7 +646,6 @@ async fn config() {
                 move || {
                     if let Some(tag) = tag::get(tag_name) {
                         tag.toggle_active();
-                        // requester.request_layout();
                     }
                 }
             })
@@ -685,7 +662,6 @@ async fn config() {
                     {
                         win.move_to_tag(&tag);
                         tag.switch_to();
-                        // requester.request_layout();
                     }
                 }
             })
@@ -701,7 +677,6 @@ async fn config() {
                         && let Some(win) = window::get_focused()
                     {
                         win.toggle_tag(&tg);
-                        // requester.request_layout();
                     }
                 }
             })
@@ -771,40 +746,6 @@ async fn config() {
             requester.request_layout();
         }
     });
-
-    // window::connect_signal(WindowSignal::Created(Box::new({
-    //     let requester = layout_requester.clone();
-    //     move |win| {
-    //         requester.request_layout();
-    //         #[cfg(feature = "snowcap")]
-    //         make_fb(win);
-    //     }
-    // })));
-
-    // window::connect_signal(WindowSignal::Focused(Box::new({
-    //     let requester = layout_requester.clone();
-    //     move |win| {
-    //         requester.request_layout();
-    //         #[cfg(feature = "snowcap")]
-    //         make_fb(win);
-    //     }
-    // })));
-
-    // window::connect_signal(WindowSignal::LayoutModeChanged(Box::new({
-    //     let requester = layout_requester.clone();
-    //     move |win, _layout_mode| {
-    //         requester.request_layout();
-    //         #[cfg(feature = "snowcap")]
-    //         make_fb(win);
-    //     }
-    // })));
-
-    // window::connect_signal(WindowSignal::Destroyed(Box::new({
-    //     let requester = layout_requester.clone();
-    //     move |_win, _title, _appid| {
-    //         requester.request_layout();
-    //     }
-    // })));
 
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
