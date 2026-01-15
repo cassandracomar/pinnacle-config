@@ -60,6 +60,19 @@ pub enum SequenceDirection {
     Previous,
 }
 
+fn push_and_yield<T>(n: &mut VecDeque<T>, t: T) -> &mut VecDeque<T> {
+    n.push_front(t);
+    n
+}
+
+fn reset<T>(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
+    pl.drain(..).fold(nl, push_and_yield);
+}
+
+fn pop_push<T>(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
+    pl.push_front(nl.pop_front().unwrap())
+}
+
 impl<T> Zipper<T> {
     pub fn new() -> Self {
         Self {
@@ -94,7 +107,7 @@ impl<T> Zipper<T> {
             let s = s.circle_step(SequenceDirection::Next);
             match s.focus() {
                 Some(t) if !p(t) => Ok(s),
-                _ => Err(s),
+                _ => Err(s), // we've found the focused window so break
             }
         };
 
@@ -104,19 +117,13 @@ impl<T> Zipper<T> {
             .unwrap_or_else(identity)
     }
 
-    /// reset to the start of the sequence.
-    pub fn reset(&mut self) -> &mut Self {
-        for t in self.backward.drain(..) {
-            self.forward.push_front(t);
-        }
+    pub fn reset_start(mut self) -> Self {
+        reset(&mut self.forward, &mut self.backward);
         self
     }
 
-    /// reset to the start of the reverse sequence.
-    pub fn reset_end(&mut self) -> &mut Self {
-        for t in self.forward.drain(..) {
-            self.backward.push_front(t);
-        }
+    pub fn reset_end(mut self) -> Self {
+        reset(&mut self.backward, &mut self.forward);
         self
     }
 
@@ -124,12 +131,8 @@ impl<T> Zipper<T> {
     /// and pushes it onto the reverse stacks.
     fn advance_focus(mut self, dir: SequenceDirection) -> Self {
         match dir {
-            SequenceDirection::Next => {
-                self.backward.push_front(self.forward.pop_front().unwrap());
-            }
-            SequenceDirection::Previous => {
-                self.forward.push_front(self.backward.pop_front().unwrap());
-            }
+            SequenceDirection::Next => pop_push(&mut self.forward, &mut self.backward),
+            SequenceDirection::Previous => pop_push(&mut self.backward, &mut self.forward),
         };
 
         self
@@ -139,19 +142,12 @@ impl<T> Zipper<T> {
     /// this rotation is only required when the stack matching the direction of motion has run out of elements. we thus
     /// circularize the `Zipper`, ensuring that we always have a next element in the appropriate direction, so long as the
     /// `Zipper` itself is not empty.
-    fn rotate_stacks(mut self, dir: SequenceDirection) -> Self {
-        let (nl, pl) = match dir {
-            SequenceDirection::Next => (&mut self.forward, &mut self.backward),
-            SequenceDirection::Previous => (&mut self.backward, &mut self.forward),
-        };
-
-        if nl.is_empty() {
-            for t in pl.drain(..) {
-                nl.push_front(t);
-            }
+    fn rotate_stacks(self, dir: SequenceDirection) -> Self {
+        match dir {
+            SequenceDirection::Next if self.forward.is_empty() => self.reset_start(),
+            SequenceDirection::Previous if self.backward.is_empty() => self.reset_end(),
+            _ => self,
         }
-
-        self
     }
 
     /// retrieve the element focused by the `Zipper`
@@ -180,11 +176,9 @@ impl<T> Zipper<T> {
 
 impl<T> FromIterator<T> for Zipper<T> {
     fn from_iter<U: IntoIterator<Item = T>>(iter: U) -> Self {
-        let s = Self::new();
-        iter.into_iter().fold(s, |mut s, t| {
-            s.forward.push_back(t);
-            s
-        })
+        let mut s = Self::new();
+        iter.into_iter().fold(&mut s.forward, push_and_yield);
+        s
     }
 }
 
@@ -209,7 +203,6 @@ where
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.cursor += 1;
         let (nl, pl) = match self.dir {
             SequenceDirection::Next => (&self.zipper.forward, &self.zipper.backward),
             SequenceDirection::Previous => (&self.zipper.backward, &self.zipper.forward),
@@ -219,12 +212,15 @@ where
             let nl_len = nl.len();
             let pl_len = pl.len();
 
-            if self.cursor < nl_len {
+            let res = if self.cursor < nl_len {
                 nl.get(self.cursor)
             } else {
                 // when we reach the bottom of `nl`, the next element in the sequence is the *last* element of pl
                 pl.get(pl_len - (self.cursor - nl_len + 1))
-            }
+            };
+            self.cursor += 1;
+
+            res
         } else {
             None
         }
