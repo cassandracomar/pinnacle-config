@@ -85,7 +85,7 @@ impl<T: Debug> Zipper<T> {
                 println!("error!: pl is empty before draining");
             }
 
-            for t in pl.drain(..) {
+            while let Some(t) = pl.pop_front() {
                 println!("pushing {t:?} to {dir:?}");
                 nl.push_front(t);
             }
@@ -230,8 +230,7 @@ fn cycle_next(
             .tags()
             .flat_map(|tag| tag.windows())
             .collect::<Zipper<_>>()
-            .refocus(|t| t == &focused)
-            .remove_focus(); // we want to cycle to something other than the focused window
+            .refocus(|t| t == &focused);
 
         if let Some(next) = zipper.next_in_dir(dir) {
             action(&focused, next)
