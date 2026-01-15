@@ -76,18 +76,9 @@ impl<T: Debug> Zipper<T> {
             ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
         };
 
+        Self::rotate(nl, pl, dir);
         pl.push_front(nl.pop_front().unwrap());
-
-        // circularize the zipper, ensuring that we always have a next element in the appropriate direction
-        // so long as the zipper itself is not empty.
-        if nl.is_empty() {
-            println!("draining to fill {dir:?}");
-
-            for t in pl.drain(..) {
-                println!("pushing {t:?} to {dir:?}");
-                nl.push_front(t);
-            }
-        }
+        Self::rotate(nl, pl, dir);
 
         println!("after next_in_dir: ");
         self.dump();
@@ -112,6 +103,19 @@ impl<T: Debug> Zipper<T> {
         }
 
         self
+    }
+
+    pub fn rotate(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>, dir: ZipperDirection) {
+        // circularize the zipper, ensuring that we always have a next element in the appropriate direction
+        // so long as the zipper itself is not empty.
+        if nl.is_empty() {
+            println!("draining to fill {dir:?}");
+
+            for t in pl.drain(..) {
+                println!("pushing {t:?} to {dir:?}");
+                nl.push_front(t);
+            }
+        }
     }
 
     pub fn remove_focus(mut self) -> Self {
