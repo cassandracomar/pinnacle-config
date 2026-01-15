@@ -102,12 +102,18 @@ impl<T> Zipper<T> {
 
     /// reset to the start of the sequence.
     pub fn reset(&mut self) -> &mut Self {
-        self.rotate_stacks(SequenceDirection::Next)
+        for t in self.backward.drain(..) {
+            self.forward.push_front(t);
+        }
+        self
     }
 
     /// reset to the start of the reverse sequence.
     pub fn reset_end(&mut self) -> &mut Self {
-        self.rotate_stacks(SequenceDirection::Previous)
+        for t in self.forward.drain(..) {
+            self.backward.push_front(t);
+        }
+        self
     }
 
     /// take one step in the requested direction. this pops an element from the stack matching the direction of motion
