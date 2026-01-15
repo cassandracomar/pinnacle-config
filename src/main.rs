@@ -58,41 +58,25 @@ pub enum ZipperDirection {
     Previous,
 }
 
-/// rotate one stack into the other if necessary. this circularizes the `Zipper`,
-/// ensuring that we always have a next element in the appropriate direction,
-/// so long as the zipper itself is not empty.
-fn rotate_stacks<T>(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
-    if nl.is_empty() {
-        for t in pl.drain(..) {
-            nl.push_front(t);
-        }
-    }
-}
-
 impl<T> Zipper<T> {
-    /// find the next element in the sequence, in the provided direction. this function rotates back to the start of the
-    /// sequence when `next_in_dir` is called on the last element of the sequence.
+    /// find the next element in the sequence, in the provided direction. this
+    /// function rotates back to the start of the sequence when `next_in_dir` is
+    /// called on the last element of the sequence.
     pub fn next_in_dir(&mut self, dir: ZipperDirection) -> Option<&T> {
-        // don't have a next if both stacks are empty
         if self.size() == 0 {
             return None;
         }
 
-        let (nl, pl) = match dir {
-            ZipperDirection::Next => (&mut self.forward, &mut self.backward),
-            ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
-        };
-
         match dir {
             ZipperDirection::Next => {
-                pl.push_front(nl.pop_front().unwrap());
-                rotate_stacks(nl, pl);
+                self.advance_focus();
+                self.rotate_stacks_forward();
             }
             ZipperDirection::Previous => {
-                rotate_stacks(nl, pl);
-                pl.push_front(nl.pop_front().unwrap());
+                self.rotate_stacks_backward();
+                self.retreat_focus();
             }
-        }
+        };
 
         self.focus()
     }
@@ -116,11 +100,6 @@ impl<T> Zipper<T> {
         self
     }
 
-    pub fn remove_focus(mut self) -> Self {
-        let _ = self.forward.pop_front();
-        self
-    }
-
     /// reset to the start of the sequence.
     pub fn reset(mut self) -> Self {
         for t in self.backward.drain(..) {
@@ -128,6 +107,38 @@ impl<T> Zipper<T> {
         }
 
         self
+    }
+
+    /// take one step deeper into the sequence
+    pub fn advance_focus(&mut self) {
+        self.backward.push_front(self.forward.pop_front().unwrap());
+    }
+
+    /// take one step back in the sequence
+    pub fn retreat_focus(&mut self) {
+        self.forward.push_front(self.backward.pop_front().unwrap());
+    }
+
+    /// rotate backward into forward, if necessary. this circularizes the `Zipper`,
+    /// ensuring that we always have a next element in the appropriate direction,
+    /// so long as the zipper itself is not empty.
+    pub fn rotate_stacks_forward(&mut self) {
+        if self.forward.is_empty() {
+            for t in self.backward.drain(..) {
+                self.forward.push_front(t);
+            }
+        }
+    }
+
+    /// rotate forward into backward, if necessary. this circularizes the `Zipper`,
+    /// ensuring that we always have a next element in the appropriate direction,
+    /// so long as the zipper itself is not empty.
+    pub fn rotate_stacks_backward(&mut self) {
+        if self.backward.is_empty() {
+            for t in self.forward.drain(..) {
+                self.backward.push_front(t);
+            }
+        }
     }
 
     /// retrieve the element focused by the `Zipper`
@@ -150,18 +161,6 @@ impl<T> Zipper<T> {
             count: self.size(),
             cursor: 0,
             dir: ZipperDirection::Previous,
-        }
-    }
-
-    pub fn dump(&self)
-    where
-        T: Debug,
-    {
-        for t in self.forward.iter() {
-            println!("forward has {t:?}");
-        }
-        for t in self.backward.iter() {
-            println!("backward has {t:?}");
         }
     }
 }
