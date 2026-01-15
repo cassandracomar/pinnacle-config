@@ -68,9 +68,6 @@ impl<T: Debug> Zipper<T> {
             return None;
         }
 
-        println!("pre next_in_dir: ");
-        self.dump();
-
         let (nl, pl) = match dir {
             ZipperDirection::Next => (&mut self.forward, &mut self.backward),
             ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
@@ -81,19 +78,12 @@ impl<T: Debug> Zipper<T> {
         if nl.is_empty() {
             println!("draining to fill {dir:?}");
 
-            if pl.is_empty() {
-                println!("error!: pl is empty before draining");
-            }
-
             for t in pl.drain(..) {
                 println!("pushing {t:?} to {dir:?}");
                 nl.push_front(t);
             }
         }
         pl.push_front(nl.pop_front().unwrap());
-
-        println!("post next_in_dir: ");
-        self.dump();
 
         self.focus()
     }
@@ -105,14 +95,20 @@ impl<T: Debug> Zipper<T> {
     /// skip ahead in the sequence until we reach the first element that satisfies the provided predicate.
     /// because `Zipper::next_in_dir` circularizes the `Zipper`, we will eventually find the requested element.
     /// this moves the `Zipper`'s focus to the requested element.
-    pub fn refocus(mut self, dir: ZipperDirection, p: impl Fn(&T) -> bool) -> Self {
+    pub fn refocus(mut self, p: impl Fn(&T) -> bool) -> Self {
         let mut seen = self.size();
-        while let Some(t) = self.next_in_dir(dir)
+        while let Some(t) = self.next_in_dir(ZipperDirection::Next)
             && !p(t)
             && seen > 0
         {
             seen -= 1;
         }
+        if let Some(next) = self.forward.pop_front() {
+            self.backward.push_front(next);
+        }
+
+        println!("after refocus: ");
+        self.dump();
 
         self
     }
@@ -226,15 +222,11 @@ fn cycle_next(
     action: impl FnOnce(&WindowHandle, &WindowHandle),
 ) {
     if let Some(focused) = focused {
-        let opp = match dir {
-            ZipperDirection::Next => ZipperDirection::Previous,
-            ZipperDirection::Previous => ZipperDirection::Next,
-        };
         let mut zipper = focused
             .tags()
             .flat_map(|tag| tag.windows())
             .collect::<Zipper<_>>()
-            .refocus(opp, |t| t == &focused);
+            .refocus(|t| t == &focused);
 
         if let Some(next) = zipper.next_in_dir(dir) {
             action(&focused, next)
