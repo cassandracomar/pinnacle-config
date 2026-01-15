@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, convert::identity};
+use std::{collections::VecDeque, convert::identity, fmt::Display};
 
 /// the classic functional data structure. it's like an iterator except that it needs to allocate.
 /// opening a `Zipper` over a sequence allows moving both forwards and backwards through it.
@@ -19,6 +19,16 @@ pub struct Zipper<T> {
     forward: VecDeque<T>,
     /// a stack for elements occurring earlier in the sequence
     backward: VecDeque<T>,
+}
+
+impl<T: Display> Display for Zipper<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[")?;
+        for t in self.iter() {
+            write!(f, " {t},")?;
+        }
+        write!(f, "]")
+    }
 }
 
 /// the direction to move in relative to the original order of the elements in the source sequence.
@@ -205,7 +215,7 @@ where
             let res = if self.cursor < nl_len {
                 nl.get(self.cursor)
             } else {
-                // when we reach the bottom of `nl`, the next element in the sequence is the *last* element of pl
+                // when we reach the bottom of `nl`, the next element in the sequence is the *last* element of `pl`
                 pl.get(pl_len - (self.cursor - nl_len + 1))
             };
             self.cursor += 1;
@@ -222,6 +232,44 @@ mod tests {
     use std::ops::Rem;
 
     use super::*;
+
+    #[test]
+    fn reset_start_and_end_should_reset() {
+        let zipper = (0..10).into_iter().collect::<Zipper<_>>();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(0),
+            "a newly collected zipper should focus the first element"
+        );
+
+        let zipper = zipper.reset_end();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(9),
+            "resetting a zipper to the end should focus the last element"
+        );
+
+        let zipper = zipper.reset_end();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(9),
+            "resetting to the end when focusing the end should be idempotent"
+        );
+
+        let zipper = zipper.reset_start();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(0),
+            "resetting a zipper to the start should focus the first element"
+        );
+
+        let zipper = zipper.reset_start();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(0),
+            "resetting to the start when focusing the start should be idempotent"
+        );
+    }
 
     #[test]
     fn cycle_step_forward_moves_focus_forward() {
@@ -292,6 +340,43 @@ mod tests {
             zipper.focus().copied(),
             Some(6),
             "refocus should focus the first element satisfying the predicate"
+        );
+    }
+
+    #[test]
+    fn iterator_yields_all_elements_starting_from_focus() {
+        let zipper = (0..10)
+            .into_iter()
+            .collect::<Zipper<_>>()
+            .refocus(|t| *t == 5);
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(5),
+            "refocus should focus the selected element"
+        );
+
+        let v = zipper.iter().copied().collect::<Vec<_>>();
+        assert_eq!(
+            &v,
+            &[5, 6, 7, 8, 9, 0, 1, 2, 3, 4],
+            "iterator should produce all elements in order, starting from the focus"
+        );
+
+        // we're getting the wrong result here because we start reading from the wrong stack.
+        // not sure if I care to fix this as the right way to do it is probably to do really
+        // annoying index math with a cursor that starts from zero and counts down to `1 - self.size()`.
+        // avoiding this is why I wrote the zipper to begin with.
+        let v = zipper.reverse_iter().copied().collect::<Vec<_>>();
+        assert_eq!(
+            &v,
+            &[4, 3, 2, 1, 0, 9, 8, 7, 6, 5],
+            "reverse iterator should produce all elements in reverse order, starting from the focus"
+        );
+
+        let s = zipper.to_string();
+        assert_eq!(
+            &s, "[ 5, 6, 7, 8, 9, 0, 1, 2, 3, 4,]",
+            "pretty printing the zipper should work"
         );
     }
 }
