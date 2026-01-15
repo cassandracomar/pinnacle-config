@@ -61,6 +61,11 @@ impl<T> Zipper<T> {
     /// find the next element in the sequence, in the provided direction. this function rotates back to the start of the
     /// sequence when `next_in_dir` is called on the last element of the sequence.
     pub fn next_in_dir(&mut self, dir: ZipperDirection) -> Option<&T> {
+        // don't have a next if both stacks are empty
+        if self.forward.is_empty() && self.backward.is_empty() {
+            return None;
+        }
+
         let (nl, pl) = match dir {
             ZipperDirection::Next => (&mut self.forward, &mut self.backward),
             ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
@@ -72,18 +77,15 @@ impl<T> Zipper<T> {
             for t in pl.drain(..) {
                 nl.push_front(t);
             }
-
-            // if it's still empty, the zipper is empty
-            if nl.is_empty() {
-                return None;
-            }
         }
 
         if let Some(next) = nl.pop_front() {
             pl.push_front(next);
+            self.forward.front()
+        } else {
+            println!("invalid zipper state: {dir:?} is empty despite zipper not being empty");
+            None
         }
-
-        self.forward.front()
     }
 
     pub fn size(&self) -> usize {
@@ -140,16 +142,14 @@ impl<T> Zipper<T> {
 
 impl<T> FromIterator<T> for Zipper<T> {
     fn from_iter<U: IntoIterator<Item = T>>(iter: U) -> Self {
-        let mut s = Self {
-            forward: VecDeque::new(),
-            backward: VecDeque::new(),
-        };
+        let mut forward = VecDeque::new();
+        let backward = VecDeque::new();
 
         for t in iter.into_iter() {
-            s.forward.push_back(t);
+            forward.push_back(t);
         }
 
-        s
+        Self { forward, backward }
     }
 }
 
@@ -196,65 +196,7 @@ where
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct Circularized {
-    forward: Direction,
-    forward_cross: Direction,
-    backward: Direction,
-    backward_cross: Direction,
-}
-
-fn circularize_direction(cdir: ZipperDirection) -> Circularized {
-    match cdir {
-        ZipperDirection::Next => Circularized {
-            forward: Direction::Right,
-            forward_cross: Direction::Down,
-            backward: Direction::Left,
-            backward_cross: Direction::Up,
-        },
-        ZipperDirection::Previous => Circularized {
-            forward: Direction::Up,
-            forward_cross: Direction::Left,
-            backward: Direction::Down,
-            backward_cross: Direction::Right,
-        },
-    }
-}
-
-fn on_next_circular(
-    focused: Option<WindowHandle>,
-    dir: ZipperDirection,
-    action: impl FnOnce(&WindowHandle, &WindowHandle),
-) {
-    if let Some(focused) = focused {
-        let Circularized {
-            forward,
-            forward_cross,
-            backward,
-            backward_cross,
-        } = circularize_direction(dir);
-
-        let mut reversed: Vec<_> = focused.in_direction(backward).collect();
-        let mut reversed_cross: Vec<_> = focused.in_direction(backward_cross).collect();
-        reversed.reverse();
-        reversed_cross.reverse();
-
-        if let Some(next) = focused
-            // build a circular iterator by chaining an iterator in the four cardinal directions
-            // when there are only a few windows (i.e. most of the time), most of these directions will yield nothing
-            // except for one.
-            .in_direction(forward)
-            .chain(focused.in_direction(forward_cross))
-            .chain(reversed)
-            .chain(reversed_cross)
-            .next()
-        {
-            action(&focused, &next)
-        }
-    }
-}
-
-fn on_next_depth(
+fn cycle_next(
     focused: Option<WindowHandle>,
     dir: ZipperDirection,
     action: impl FnOnce(&WindowHandle, &WindowHandle),
@@ -295,6 +237,20 @@ fn make_fb(win: &WindowHandle) {
         },
         |_| (),
     )
+}
+
+fn move_focus(focused: &WindowHandle, next: &WindowHandle) {
+    if focused.maximized() || next.maximized() {
+        focused.lower();
+        next.set_maximized(true);
+        next.raise();
+    }
+    next.set_focused(true);
+}
+
+fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
+    focused.swap(next);
+    focused.set_focused(true);
 }
 
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
@@ -467,39 +423,30 @@ async fn config() {
         .group("Process")
         .description("take a screenshot");
 
-    let move_focus = |focused: &WindowHandle, next: &WindowHandle| {
-        if focused.maximized() || next.maximized() {
-            focused.lower();
-            next.set_maximized(true);
-            next.raise();
-        }
-        next.set_focused(true);
-    };
-
     input::keybind(mod_key, 'j')
-        .on_press(move || {
-            on_next_circular(window::get_focused(), ZipperDirection::Next, move_focus);
+        .on_press(|| {
+            cycle_next(window::get_focused(), ZipperDirection::Next, move_focus);
         })
         .group("Window")
         .description("focus next window");
 
     input::keybind(mod_key, Keysym::Tab)
-        .on_press(move || {
-            on_next_depth(window::get_focused(), ZipperDirection::Next, move_focus);
+        .on_press(|| {
+            cycle_next(window::get_focused(), ZipperDirection::Next, move_focus);
         })
         .group("Window")
         .description("focus prev window");
 
     input::keybind(mod_key, 'k')
-        .on_press(move || {
-            on_next_circular(window::get_focused(), ZipperDirection::Previous, move_focus);
+        .on_press(|| {
+            cycle_next(window::get_focused(), ZipperDirection::Previous, move_focus);
         })
         .group("Window")
         .description("focus prev window");
 
     input::keybind(mod_key | Mod::SHIFT, Keysym::Tab)
-        .on_press(move || {
-            on_next_depth(window::get_focused(), ZipperDirection::Previous, move_focus);
+        .on_press(|| {
+            cycle_next(window::get_focused(), ZipperDirection::Previous, move_focus);
         })
         .group("Window")
         .description("focus next window");
@@ -637,21 +584,16 @@ async fn config() {
         .group("Layout")
         .description("Cycle the layout backward");
 
-    let swap_windows = |focused: &WindowHandle, next: &WindowHandle| {
-        focused.swap(next);
-        focused.set_focused(true);
-    };
-
     input::keybind(mod_key | Mod::SHIFT, 'j')
-        .on_press(move || {
-            on_next_circular(window::get_focused(), ZipperDirection::Next, swap_windows);
+        .on_press(|| {
+            cycle_next(window::get_focused(), ZipperDirection::Next, swap_windows);
         })
         .group("Window")
         .description("shift window forward");
 
     input::keybind(mod_key | Mod::SHIFT, 'k')
-        .on_press(move || {
-            on_next_circular(
+        .on_press(|| {
+            cycle_next(
                 window::get_focused(),
                 ZipperDirection::Previous,
                 swap_windows,
