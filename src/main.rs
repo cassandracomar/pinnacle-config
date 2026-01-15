@@ -76,17 +76,9 @@ impl<T> Zipper<T> {
         }
 
         match dir {
-            SequenceDirection::Next => {
-                self.advance_focus(dir);
-                self.rotate_stacks(dir);
-            }
-            SequenceDirection::Previous => {
-                self.rotate_stacks(dir);
-                self.advance_focus(dir);
-            }
+            SequenceDirection::Next => self.advance_focus(dir).rotate_stacks(dir).focus(),
+            SequenceDirection::Previous => self.rotate_stacks(dir).advance_focus(dir).focus(),
         }
-
-        self.focus()
     }
 
     pub fn size(&self) -> usize {
@@ -109,18 +101,18 @@ impl<T> Zipper<T> {
     }
 
     /// reset to the start of the sequence.
-    pub fn reset(&mut self) {
-        self.rotate_stacks(SequenceDirection::Next);
+    pub fn reset(&mut self) -> &mut Self {
+        self.rotate_stacks(SequenceDirection::Next)
     }
 
     /// reset to the start of the reverse sequence.
-    pub fn reset_end(&mut self) {
-        self.rotate_stacks(SequenceDirection::Previous);
+    pub fn reset_end(&mut self) -> &mut Self {
+        self.rotate_stacks(SequenceDirection::Previous)
     }
 
     /// take one step in the requested direction. this pops an element from the stack matching the direction of motion
     /// and pushes it onto the reverse stacks.
-    pub fn advance_focus(&mut self, dir: SequenceDirection) {
+    pub fn advance_focus(&mut self, dir: SequenceDirection) -> &mut Self {
         match dir {
             SequenceDirection::Next => {
                 self.backward.push_front(self.forward.pop_front().unwrap());
@@ -129,13 +121,15 @@ impl<T> Zipper<T> {
                 self.forward.push_front(self.backward.pop_front().unwrap());
             }
         };
+
+        self
     }
 
     /// rotate the stack counter to the direction of motion into the stack matching the direction of motion, if necessary.
     /// this rotation is only required when the stack matching the direction of motion has run out of elements. we thus
     /// circularize the `Zipper`, ensuring that we always have a next element in the appropriate direction, so long as the
     /// `Zipper` itself is not empty.
-    pub fn rotate_stacks(&mut self, dir: SequenceDirection) {
+    pub fn rotate_stacks(&mut self, dir: SequenceDirection) -> &mut Self {
         let (nl, pl) = match dir {
             SequenceDirection::Next => (&mut self.forward, &mut self.backward),
             SequenceDirection::Previous => (&mut self.backward, &mut self.forward),
@@ -146,6 +140,8 @@ impl<T> Zipper<T> {
                 nl.push_front(t);
             }
         }
+
+        self
     }
 
     /// retrieve the element focused by the `Zipper`
