@@ -31,11 +31,11 @@ impl<T: Display> Display for Zipper<T> {
     }
 }
 
-/// the direction to move in relative to the original order of the elements in the source sequence.
+/// the direction to move in, relative to the original order of the elements in the source sequence.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SequenceDirection {
-    Next,
-    Previous,
+    Original,
+    Reverse,
 }
 
 fn push_and_yield<T>(n: &mut VecDeque<T>, t: T) -> &mut VecDeque<T> {
@@ -66,16 +66,16 @@ impl<T> Zipper<T> {
     }
 
     /// move the focus to the next element in the sequence, in the provided direction. this
-    /// function rotates back to the start of the sequence when `next_in_dir` is
-    /// called on the last element of the sequence.
+    /// function rotates back to the start of the sequence when `circle_step` is called on
+    /// the last element of the sequence.
     pub fn circle_step(self, dir: SequenceDirection) -> Self {
         if self.size() == 0 {
             return self;
         }
 
         match dir {
-            SequenceDirection::Next => self.advance_focus(dir).rotate_stacks(dir),
-            SequenceDirection::Previous => self.rotate_stacks(dir).advance_focus(dir),
+            SequenceDirection::Original => self.advance_focus(dir).rotate_stacks(dir),
+            SequenceDirection::Reverse => self.rotate_stacks(dir).advance_focus(dir),
         }
     }
 
@@ -85,11 +85,11 @@ impl<T> Zipper<T> {
     }
 
     /// skip ahead in the sequence until we reach the first element that satisfies the provided predicate.
-    /// because `Zipper::next_in_dir` circularizes the `Zipper`, we will eventually find the requested element.
+    /// because `Zipper::circle_step` circularizes the `Zipper`, we will eventually find the requested element.
     /// this moves the `Zipper`'s focus to the requested element.
     pub fn refocus(self, mut p: impl FnMut(&T) -> bool) -> Self {
         let f = move |s: Self, _| {
-            let s = s.circle_step(SequenceDirection::Next);
+            let s = s.circle_step(SequenceDirection::Original);
             match s.focus() {
                 Some(t) if !p(t) => Ok(s),
                 _ => Err(s), // we've found the focused window so break
@@ -118,15 +118,15 @@ impl<T> Zipper<T> {
     /// reset the focused element to the end of the original sequence.
     pub fn reset_end(self) -> Self {
         self.reset_end_impl()
-            .circle_step(SequenceDirection::Previous)
+            .circle_step(SequenceDirection::Reverse)
     }
 
     /// take one step in the requested direction. this pops an element from the stack matching the direction of motion
     /// and pushes it onto the reverse stacks.
     fn advance_focus(mut self, dir: SequenceDirection) -> Self {
         match dir {
-            SequenceDirection::Next => pop_push(&mut self.forward, &mut self.backward),
-            SequenceDirection::Previous => pop_push(&mut self.backward, &mut self.forward),
+            SequenceDirection::Original => pop_push(&mut self.forward, &mut self.backward),
+            SequenceDirection::Reverse => pop_push(&mut self.backward, &mut self.forward),
         };
 
         self
@@ -138,8 +138,8 @@ impl<T> Zipper<T> {
     /// `Zipper` itself is not empty.
     fn rotate_stacks(self, dir: SequenceDirection) -> Self {
         match dir {
-            SequenceDirection::Next if self.forward.is_empty() => self.reset_start(),
-            SequenceDirection::Previous if self.backward.is_empty() => self.reset_end_impl(),
+            SequenceDirection::Original if self.forward.is_empty() => self.reset_start(),
+            SequenceDirection::Reverse if self.backward.is_empty() => self.reset_end_impl(),
             _ => self,
         }
     }
@@ -157,7 +157,7 @@ impl<T> Zipper<T> {
             zipper: self,
             count: self.size(),
             cursor: 0,
-            dir: SequenceDirection::Next,
+            dir: SequenceDirection::Original,
         }
     }
 
@@ -169,7 +169,7 @@ impl<T> Zipper<T> {
             zipper: self,
             count: self.size(),
             cursor: -1,
-            dir: SequenceDirection::Previous,
+            dir: SequenceDirection::Reverse,
         }
     }
 }
@@ -206,13 +206,13 @@ where
         // this really highlights the advantage of the zipper approach. the zipper is structurally correct.
         // meanwhile, this is a mess of asymmetry and magic numbers.
         let (nl, pl, cond, f): (_, _, _, Box<dyn Fn(isize) -> usize>) = match self.dir {
-            SequenceDirection::Next => (
+            SequenceDirection::Original => (
                 &self.zipper.forward,
                 &self.zipper.backward,
                 self.cursor < self.count as isize,
                 Box::new(|c| c as usize),
             ),
-            SequenceDirection::Previous => (
+            SequenceDirection::Reverse => (
                 &self.zipper.backward,
                 &self.zipper.forward,
                 self.cursor < self.count as isize - 1,
@@ -299,14 +299,14 @@ mod tests {
             "a newly collected zipper should focus the first element"
         );
 
-        let zipper = zipper.circle_step(SequenceDirection::Next);
+        let zipper = zipper.circle_step(SequenceDirection::Original);
         assert_eq!(
             zipper.focus().copied(),
             Some(1),
             "stepping forward should advance to the second element"
         );
 
-        let zipper = zipper.reset_end().circle_step(SequenceDirection::Next);
+        let zipper = zipper.reset_end().circle_step(SequenceDirection::Original);
         assert_eq!(
             zipper.focus().copied(),
             Some(0),
@@ -323,14 +323,14 @@ mod tests {
             "a newly collected zipper should focus the first element"
         );
 
-        let zipper = zipper.circle_step(SequenceDirection::Previous);
+        let zipper = zipper.circle_step(SequenceDirection::Reverse);
         assert_eq!(
             zipper.focus().copied(),
             Some(9),
             "stepping backward from the first element should advance to the last element"
         );
 
-        let zipper = zipper.reset_end().circle_step(SequenceDirection::Previous);
+        let zipper = zipper.reset_end().circle_step(SequenceDirection::Reverse);
         assert_eq!(
             zipper.focus().copied(),
             Some(8),

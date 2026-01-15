@@ -263,14 +263,22 @@ async fn config() {
 
     input::keybind(mod_key, 'j')
         .on_press(|| {
-            cycle_next(window::get_focused(), SequenceDirection::Next, move_focus);
+            cycle_next(
+                window::get_focused(),
+                SequenceDirection::Original,
+                move_focus,
+            );
         })
         .group("Window")
         .description("focus next window");
 
     input::keybind(mod_key, Keysym::Tab)
         .on_press(|| {
-            cycle_next(window::get_focused(), SequenceDirection::Next, move_focus);
+            cycle_next(
+                window::get_focused(),
+                SequenceDirection::Original,
+                move_focus,
+            );
         })
         .group("Window")
         .description("focus prev window");
@@ -279,7 +287,7 @@ async fn config() {
         .on_press(|| {
             cycle_next(
                 window::get_focused(),
-                SequenceDirection::Previous,
+                SequenceDirection::Reverse,
                 move_focus,
             );
         })
@@ -290,7 +298,7 @@ async fn config() {
         .on_press(|| {
             cycle_next(
                 window::get_focused(),
-                SequenceDirection::Previous,
+                SequenceDirection::Reverse,
                 move_focus,
             );
         })
@@ -432,7 +440,11 @@ async fn config() {
 
     input::keybind(mod_key | Mod::SHIFT, 'j')
         .on_press(|| {
-            cycle_next(window::get_focused(), SequenceDirection::Next, swap_windows);
+            cycle_next(
+                window::get_focused(),
+                SequenceDirection::Original,
+                swap_windows,
+            );
         })
         .group("Window")
         .description("shift window forward");
@@ -441,7 +453,7 @@ async fn config() {
         .on_press(|| {
             cycle_next(
                 window::get_focused(),
-                SequenceDirection::Previous,
+                SequenceDirection::Reverse,
                 swap_windows,
             );
         })
