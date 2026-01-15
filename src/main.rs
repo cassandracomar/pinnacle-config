@@ -85,7 +85,7 @@ impl<T: Debug> Zipper<T> {
                 println!("error!: pl is empty before draining");
             }
 
-            while let Some(t) = pl.pop_front() {
+            for t in pl.drain(..) {
                 println!("pushing {t:?} to {dir:?}");
                 nl.push_front(t);
             }
@@ -112,6 +112,10 @@ impl<T: Debug> Zipper<T> {
             && seen > 0
         {
             seen -= 1;
+        }
+
+        if let Some(next) = self.forward.pop_front() {
+            self.backward.push_front(next);
         }
 
         self
