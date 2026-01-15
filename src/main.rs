@@ -112,7 +112,7 @@ impl<T> Zipper<T> {
 
     /// take one step in the requested direction. this pops an element from the stack matching the direction of motion
     /// and pushes it onto the reverse stacks.
-    pub fn advance_focus(&mut self, dir: SequenceDirection) -> &mut Self {
+    fn advance_focus(&mut self, dir: SequenceDirection) -> &mut Self {
         match dir {
             SequenceDirection::Next => {
                 self.backward.push_front(self.forward.pop_front().unwrap());
@@ -129,7 +129,7 @@ impl<T> Zipper<T> {
     /// this rotation is only required when the stack matching the direction of motion has run out of elements. we thus
     /// circularize the `Zipper`, ensuring that we always have a next element in the appropriate direction, so long as the
     /// `Zipper` itself is not empty.
-    pub fn rotate_stacks(&mut self, dir: SequenceDirection) -> &mut Self {
+    fn rotate_stacks(&mut self, dir: SequenceDirection) -> &mut Self {
         let (nl, pl) = match dir {
             SequenceDirection::Next => (&mut self.forward, &mut self.backward),
             SequenceDirection::Previous => (&mut self.backward, &mut self.forward),
@@ -170,14 +170,11 @@ impl<T> Zipper<T> {
 
 impl<T> FromIterator<T> for Zipper<T> {
     fn from_iter<U: IntoIterator<Item = T>>(iter: U) -> Self {
-        let mut forward = VecDeque::new();
-        let backward = VecDeque::new();
-
-        for t in iter.into_iter() {
-            forward.push_back(t);
-        }
-
-        Self { forward, backward }
+        let s = Self::new();
+        iter.into_iter().fold(s, |mut s, t| {
+            s.forward.push_back(t);
+            s
+        })
     }
 }
 
