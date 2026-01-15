@@ -168,7 +168,7 @@ impl<T> Zipper<T> {
         ZipperIter {
             zipper: self,
             count: self.size(),
-            cursor: 0,
+            cursor: -1,
             dir: SequenceDirection::Previous,
         }
     }
@@ -191,7 +191,7 @@ pub struct ZipperIter<'a, T> {
     /// number of elements in the sequence
     count: usize,
     /// keep track of which items in the sequence we've already yielded -- otherwise we'll spin indefinitely.
-    cursor: usize,
+    cursor: isize,
     /// this iterator can go forwards or backwards
     dir: SequenceDirection,
 }
@@ -203,21 +203,40 @@ where
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (nl, pl) = match self.dir {
-            SequenceDirection::Next => (&self.zipper.forward, &self.zipper.backward),
-            SequenceDirection::Previous => (&self.zipper.backward, &self.zipper.forward),
+        // this really highlights the advantage of the zipper approach. the zipper is structurally correct.
+        // meanwhile, this is a mess of asymmetry and magic numbers.
+        let (nl, pl, cond, f): (_, _, _, Box<dyn Fn(isize) -> usize>) = match self.dir {
+            SequenceDirection::Next => (
+                &self.zipper.forward,
+                &self.zipper.backward,
+                self.cursor < self.count as isize,
+                Box::new(|c| c as usize),
+            ),
+            SequenceDirection::Previous => (
+                &self.zipper.backward,
+                &self.zipper.forward,
+                self.cursor < self.count as isize - 1,
+                Box::new(|c| {
+                    if c < 0 {
+                        (c + self.count as isize) as usize
+                    } else {
+                        c as usize
+                    }
+                }),
+            ),
         };
 
-        if self.cursor < self.count {
+        if cond {
             let nl_len = nl.len();
             let pl_len = pl.len();
 
-            let res = if self.cursor < nl_len {
-                nl.get(self.cursor)
+            let res = if f(self.cursor) < nl_len {
+                nl.get(f(self.cursor))
             } else {
                 // when we reach the bottom of `nl`, the next element in the sequence is the *last* element of `pl`
-                pl.get(pl_len - (self.cursor - nl_len + 1))
+                pl.get(pl_len - (f(self.cursor) - nl_len + 1))
             };
+
             self.cursor += 1;
 
             res
@@ -362,14 +381,10 @@ mod tests {
             "iterator should produce all elements in order, starting from the focus"
         );
 
-        // we're getting the wrong result here because we start reading from the wrong stack.
-        // not sure if I care to fix this as the right way to do it is probably to do really
-        // annoying index math with a cursor that starts from zero and counts down to `1 - self.size()`.
-        // avoiding this is why I wrote the zipper to begin with.
         let v = zipper.reverse_iter().copied().collect::<Vec<_>>();
         assert_eq!(
             &v,
-            &[4, 3, 2, 1, 0, 9, 8, 7, 6, 5],
+            &[5, 4, 3, 2, 1, 0, 9, 8, 7, 6],
             "reverse iterator should produce all elements in reverse order, starting from the focus"
         );
 
