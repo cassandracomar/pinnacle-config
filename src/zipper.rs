@@ -33,6 +33,11 @@ fn push_and_yield<T>(n: &mut VecDeque<T>, t: T) -> &mut VecDeque<T> {
     n
 }
 
+fn push_back_and_yield<T>(n: &mut VecDeque<T>, t: T) -> &mut VecDeque<T> {
+    n.push_back(t);
+    n
+}
+
 fn reset<T>(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
     pl.drain(..).fold(nl, push_and_yield);
 }
@@ -162,7 +167,7 @@ impl<T> Zipper<T> {
 impl<T> FromIterator<T> for Zipper<T> {
     fn from_iter<U: IntoIterator<Item = T>>(iter: U) -> Self {
         let mut s = Self::new();
-        iter.into_iter().fold(&mut s.forward, push_and_yield);
+        iter.into_iter().fold(&mut s.forward, push_back_and_yield);
         s
     }
 }
@@ -209,5 +214,84 @@ where
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::Rem;
+
+    use super::*;
+
+    #[test]
+    fn cycle_step_forward_moves_focus_forward() {
+        let zipper = (0..10).into_iter().collect::<Zipper<_>>();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(0),
+            "a newly collected zipper should focus the first element"
+        );
+
+        let zipper = zipper.circle_step(SequenceDirection::Next);
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(1),
+            "stepping forward should advance to the second element"
+        );
+
+        let zipper = zipper.reset_end().circle_step(SequenceDirection::Next);
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(0),
+            "moving to the end and advancing should circle back to the start"
+        );
+    }
+
+    #[test]
+    fn cycle_step_backward_moves_focus_backward() {
+        let zipper = (0..10).into_iter().collect::<Zipper<_>>();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(0),
+            "a newly collected zipper should focus the first element"
+        );
+
+        let zipper = zipper.circle_step(SequenceDirection::Previous);
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(9),
+            "stepping backward from the first element should advance to the last element"
+        );
+
+        let zipper = zipper.reset_end().circle_step(SequenceDirection::Previous);
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(8),
+            "moving to the end and stepping back should yield the second-to-last element"
+        );
+    }
+
+    #[test]
+    fn refocus_should_focus_the_first_matching_element() {
+        let zipper = (0..10).into_iter().collect::<Zipper<_>>();
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(0),
+            "a newly collected zipper should focus the first element"
+        );
+
+        let zipper = zipper.refocus(|t| *t == 5);
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(5),
+            "refocus should focus the selected element"
+        );
+
+        let zipper = zipper.refocus(|t| t.rem(3) == 0);
+        assert_eq!(
+            zipper.focus().copied(),
+            Some(6),
+            "refocus should focus the first element satisfying the predicate"
+        );
     }
 }
