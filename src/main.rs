@@ -114,6 +114,14 @@ impl<T: Debug> Zipper<T> {
             seen -= 1;
         }
 
+        // move past the focused window
+        let _ = self.next_in_dir(ZipperDirection::Next);
+
+        self
+    }
+
+    pub fn remove_focus(mut self) -> Self {
+        let _ = self.forward.pop_front();
         self
     }
 
@@ -225,7 +233,7 @@ fn cycle_next(
             .tags()
             .flat_map(|tag| tag.windows())
             .collect::<Zipper<_>>()
-            .refocus(|t| t == &focused);
+            .refocus(|t| t == &focused); // we want to cycle to something other than the focused window
 
         if let Some(next) = zipper.next_in_dir(dir) {
             action(&focused, next)
