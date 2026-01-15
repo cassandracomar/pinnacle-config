@@ -221,6 +221,57 @@ fn circularize_direction(cdir: ZipperDirection) -> Circularized {
     }
 }
 
+fn on_next_circular(
+    focused: Option<WindowHandle>,
+    dir: ZipperDirection,
+    action: impl FnOnce(&WindowHandle, &WindowHandle),
+) {
+    if let Some(focused) = focused {
+        let Circularized {
+            forward,
+            forward_cross,
+            backward,
+            backward_cross,
+        } = circularize_direction(dir);
+
+        let mut reversed: Vec<_> = focused.in_direction(backward).collect();
+        let mut reversed_cross: Vec<_> = focused.in_direction(backward_cross).collect();
+        reversed.reverse();
+        reversed_cross.reverse();
+
+        if let Some(next) = focused
+            // build a circular iterator by chaining an iterator in the four cardinal directions
+            // when there are only a few windows (i.e. most of the time), most of these directions will yield nothing
+            // except for one.
+            .in_direction(forward)
+            .chain(focused.in_direction(forward_cross))
+            .chain(reversed)
+            .chain(reversed_cross)
+            .next()
+        {
+            action(&focused, &next)
+        }
+    }
+}
+
+fn on_next_depth(
+    focused: Option<WindowHandle>,
+    dir: ZipperDirection,
+    action: impl FnOnce(&WindowHandle, &WindowHandle),
+) {
+    if let Some(focused) = focused {
+        let mut zipper = focused
+            .tags()
+            .flat_map(|tag| tag.windows())
+            .collect::<Zipper<_>>()
+            .refocus(|t| t == &focused);
+
+        if let Some(next) = zipper.next_in_dir(dir) {
+            action(&focused, next)
+        }
+    }
+}
+
 #[cfg(feature = "snowcap")]
 fn make_fb(win: &WindowHandle) {
     FocusBorder {
@@ -416,100 +467,39 @@ async fn config() {
         .group("Process")
         .description("take a screenshot");
 
-    fn on_next_circular(
-        focused: Option<WindowHandle>,
-        dir: ZipperDirection,
-        action: impl FnOnce(&WindowHandle, &WindowHandle),
-    ) {
-        if let Some(focused) = focused {
-            let Circularized {
-                forward,
-                forward_cross,
-                backward,
-                backward_cross,
-            } = circularize_direction(dir);
-
-            let mut reversed: Vec<_> = focused.in_direction(backward).collect();
-            let mut reversed_cross: Vec<_> = focused.in_direction(backward_cross).collect();
-            reversed.reverse();
-            reversed_cross.reverse();
-
-            if let Some(next) = focused
-                // build a circular iterator by chaining an iterator in the four cardinal directions
-                // when there are only a few windows (i.e. most of the time), most of these directions will yield nothing
-                // except for one.
-                .in_direction(forward)
-                .chain(focused.in_direction(forward_cross))
-                .chain(reversed)
-                .chain(reversed_cross)
-                .next()
-            {
-                action(&focused, &next)
-            }
+    let move_focus = |focused: &WindowHandle, next: &WindowHandle| {
+        if focused.maximized() || next.maximized() {
+            focused.lower();
+            next.set_maximized(true);
+            next.raise();
         }
-    }
-
-    fn on_next_depth(
-        focused: Option<WindowHandle>,
-        dir: ZipperDirection,
-        action: impl FnOnce(&WindowHandle, &WindowHandle),
-    ) {
-        if let Some(focused) = focused {
-            let mut zipper = focused
-                .tags()
-                .flat_map(|tag| tag.windows())
-                .collect::<Zipper<_>>()
-                .refocus(|t| t == &focused);
-
-            if let Some(next) = zipper.next_in_dir(dir) {
-                action(&focused, next)
-            }
-        }
-    }
-
-    fn move_focus() -> impl Fn(&WindowHandle, &WindowHandle) {
-        |focused: &WindowHandle, next: &WindowHandle| {
-            if focused.maximized() || next.maximized() {
-                focused.lower();
-                next.set_maximized(true);
-                next.raise();
-            }
-            next.set_focused(true);
-        }
-    }
+        next.set_focused(true);
+    };
 
     input::keybind(mod_key, 'j')
-        .on_press(|| {
-            on_next_circular(window::get_focused(), ZipperDirection::Next, move_focus());
+        .on_press(move || {
+            on_next_circular(window::get_focused(), ZipperDirection::Next, move_focus);
         })
         .group("Window")
         .description("focus next window");
 
     input::keybind(mod_key, Keysym::Tab)
-        .on_press(|| {
-            on_next_depth(window::get_focused(), ZipperDirection::Next, move_focus());
+        .on_press(move || {
+            on_next_depth(window::get_focused(), ZipperDirection::Next, move_focus);
         })
         .group("Window")
         .description("focus prev window");
 
     input::keybind(mod_key, 'k')
-        .on_press(|| {
-            on_next_circular(
-                window::get_focused(),
-                ZipperDirection::Previous,
-                move_focus(),
-            );
+        .on_press(move || {
+            on_next_circular(window::get_focused(), ZipperDirection::Previous, move_focus);
         })
         .group("Window")
         .description("focus prev window");
 
     input::keybind(mod_key | Mod::SHIFT, Keysym::Tab)
-        .on_press(|| {
-            on_next_depth(
-                window::get_focused(),
-                ZipperDirection::Previous,
-                move_focus(),
-            );
+        .on_press(move || {
+            on_next_depth(window::get_focused(), ZipperDirection::Previous, move_focus);
         })
         .group("Window")
         .description("focus next window");
@@ -647,16 +637,14 @@ async fn config() {
         .group("Layout")
         .description("Cycle the layout backward");
 
-    fn swap_windows() -> impl FnOnce(&WindowHandle, &WindowHandle) {
-        move |focused, next| {
-            focused.swap(next);
-            focused.set_focused(true);
-        }
-    }
+    let swap_windows = |focused: &WindowHandle, next: &WindowHandle| {
+        focused.swap(next);
+        focused.set_focused(true);
+    };
 
     input::keybind(mod_key | Mod::SHIFT, 'j')
         .on_press(move || {
-            on_next_circular(window::get_focused(), ZipperDirection::Next, swap_windows());
+            on_next_circular(window::get_focused(), ZipperDirection::Next, swap_windows);
         })
         .group("Window")
         .description("shift window forward");
@@ -666,7 +654,7 @@ async fn config() {
             on_next_circular(
                 window::get_focused(),
                 ZipperDirection::Previous,
-                swap_windows(),
+                swap_windows,
             );
         })
         .group("Window")
@@ -896,6 +884,8 @@ async fn config() {
 
     Command::new("eww").args(["daemon"]).once().spawn();
     Command::new(terminal).once().spawn();
+    Command::new("firefox").once().spawn();
+    Command::new("emacs").once().spawn();
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
