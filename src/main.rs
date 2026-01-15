@@ -77,6 +77,10 @@ impl<T> Zipper<T> {
         if nl.is_empty() {
             println!("draining to fill {dir:?}");
 
+            if pl.is_empty() {
+                println!("error!: pl is empty before draining");
+            }
+
             for t in pl.drain(..) {
                 nl.push_front(t);
             }
