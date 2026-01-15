@@ -63,6 +63,7 @@ impl<T> Zipper<T> {
     pub fn next_in_dir(&mut self, dir: ZipperDirection) -> Option<&T> {
         // don't have a next if both stacks are empty
         if self.forward.is_empty() && self.backward.is_empty() {
+            println!("dbg: empty zipper");
             return None;
         }
 
@@ -74,18 +75,15 @@ impl<T> Zipper<T> {
         // circularize the zipper, ensuring that we always have a next element in the appropriate direction
         // so long as the zipper itself is not empty.
         if nl.is_empty() {
+            println!("draining to fill {dir:?}");
+
             for t in pl.drain(..) {
                 nl.push_front(t);
             }
         }
+        pl.push_front(nl.pop_front().unwrap());
 
-        if let Some(next) = nl.pop_front() {
-            pl.push_front(next);
-            self.forward.front()
-        } else {
-            println!("invalid zipper state: {dir:?} is empty despite zipper not being empty");
-            None
-        }
+        self.forward.front()
     }
 
     pub fn size(&self) -> usize {
