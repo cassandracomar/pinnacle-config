@@ -37,11 +37,12 @@ fn reset<T>(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
     pl.drain(..).fold(nl, push_and_yield);
 }
 
-fn pop_push<T>(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
-    pl.push_front(nl.pop_front().unwrap())
+fn pop_push<T>(pop: &mut VecDeque<T>, push: &mut VecDeque<T>) {
+    push.push_front(pop.pop_front().unwrap())
 }
 
 impl<T> Zipper<T> {
+    /// construct an empty `Zipper`
     pub fn new() -> Self {
         Self {
             forward: VecDeque::new(),
@@ -63,6 +64,7 @@ impl<T> Zipper<T> {
         }
     }
 
+    /// get the number of elements in the `Zipper`
     pub fn size(&self) -> usize {
         self.forward.len() + self.backward.len()
     }
@@ -85,14 +87,23 @@ impl<T> Zipper<T> {
             .unwrap_or_else(identity)
     }
 
+    /// reset the focused element to the start of the original sequence
     pub fn reset_start(mut self) -> Self {
         reset(&mut self.forward, &mut self.backward);
         self
     }
 
-    pub fn reset_end(mut self) -> Self {
+    /// reset the focused element to the end of the original sequence. note that the caller needs to advance the zipper
+    /// one step in reverse to actually maintain the zipper invariant, that an element is always focused.
+    fn reset_end_impl(mut self) -> Self {
         reset(&mut self.backward, &mut self.forward);
         self
+    }
+
+    /// reset the focused element to the end of the original sequence.
+    pub fn reset_end(self) -> Self {
+        self.reset_end_impl()
+            .circle_step(SequenceDirection::Previous)
     }
 
     /// take one step in the requested direction. this pops an element from the stack matching the direction of motion
@@ -113,7 +124,7 @@ impl<T> Zipper<T> {
     fn rotate_stacks(self, dir: SequenceDirection) -> Self {
         match dir {
             SequenceDirection::Next if self.forward.is_empty() => self.reset_start(),
-            SequenceDirection::Previous if self.backward.is_empty() => self.reset_end(),
+            SequenceDirection::Previous if self.backward.is_empty() => self.reset_end_impl(),
             _ => self,
         }
     }
@@ -123,6 +134,9 @@ impl<T> Zipper<T> {
         self.forward.front()
     }
 
+    /// yield an `Iterator` that iterates in the order imposed by the original sequence but starting at the currently
+    /// focused element. the element following the last element of the original sequence is the first element of the
+    /// sequence.
     pub fn iter(&'_ self) -> ZipperIter<'_, T> {
         ZipperIter {
             zipper: self,
@@ -132,6 +146,9 @@ impl<T> Zipper<T> {
         }
     }
 
+    /// yield an `Iterator` that iterates in reverse over the original sequence but starting at the currently
+    /// focused element. the element following the first element of the original sequence is the last element of the
+    /// sequence.
     pub fn reverse_iter(&'_ self) -> ZipperIter<'_, T> {
         ZipperIter {
             zipper: self,
