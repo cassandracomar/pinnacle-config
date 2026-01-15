@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -28,6 +29,197 @@ use pinnacle_api::window::WindowHandle;
 
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
+
+/// the classic functional data structure. it's like an iterator except that it needs to allocate.
+/// opening a `Zipper` over a sequence allows moving both forwards and backwards through it.
+/// a `Zipper` can be opened over any sequenceable data -- e.g. a traversal over a tree works
+/// just as well as a list.
+///
+/// `Iterator`s are usually more efficient because they can avoid allocating buffers to store references
+/// to the elements of the sequence -- in the worst case, the `Zipper` is allocating sufficient space for
+/// twice the length of the sequence. however, `Zipper`s are substantially more flexible, allowing iteration
+/// in both directions.
+///
+/// this particular `Zipper` has been turned into a ring. when the last element of the sequence is reached,
+/// the next element is the first element of the sequence (and vice versa when iterating in reverse).
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Zipper<T> {
+    /// a stack for elements occurring later in the sequence.
+    /// the first element of this stack is the one currently focused.
+    forward: VecDeque<T>,
+    /// a stack for elements occurring earlier in the sequence
+    backward: VecDeque<T>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ZipperDirection {
+    Next,
+    Previous,
+}
+
+impl<T> Zipper<T> {
+    /// find the next element in the sequence, in the provided direction. this function rotates back to the start of the
+    /// sequence when `next_in_dir` is called on the last element of the sequence.
+    pub fn next_in_dir(&mut self, dir: ZipperDirection) -> Option<&T> {
+        let (nl, pl) = match dir {
+            ZipperDirection::Next => (&mut self.forward, &mut self.backward),
+            ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
+        };
+
+        // circularize the zipper, ensuring that we always have a next element in the appropriate direction
+        // so long as the zipper itself is not empty.
+        if nl.is_empty() {
+            for t in pl.drain(..) {
+                nl.push_front(t);
+            }
+
+            // if it's still empty, the zipper is empty
+            if nl.is_empty() {
+                return None;
+            }
+        }
+
+        if let Some(next) = nl.pop_front() {
+            pl.push_front(next);
+        }
+
+        self.forward.front()
+    }
+
+    pub fn size(&self) -> usize {
+        self.forward.len() + self.backward.len()
+    }
+
+    /// skip ahead in the sequence until we reach the first element that satisfies the provided predicate.
+    /// because `Zipper::next_in_dir` circularizes the `Zipper`, we will eventually find the requested element.
+    /// this moves the `Zipper`'s focus to the requested element.
+    pub fn refocus(mut self, p: impl Fn(&T) -> bool) -> Self {
+        let mut seen = self.size();
+        while let Some(t) = self.next_in_dir(ZipperDirection::Next)
+            && !p(t)
+            && seen > 0
+        {
+            seen -= 1;
+        }
+
+        self
+    }
+
+    /// reset to the start of the sequence.
+    pub fn reset(mut self) -> Self {
+        for t in self.backward.drain(..) {
+            self.forward.push_front(t);
+        }
+
+        self
+    }
+
+    /// retrieve the element focused by the `Zipper`
+    pub fn focus(&self) -> Option<&T> {
+        self.forward.front()
+    }
+
+    pub fn iter(&'_ self) -> ZipperIter<'_, T> {
+        ZipperIter {
+            zipper: self,
+            count: self.size(),
+            cursor: 0,
+            dir: ZipperDirection::Next,
+        }
+    }
+
+    pub fn reverse_iter(&'_ self) -> ZipperIter<'_, T> {
+        ZipperIter {
+            zipper: self,
+            count: self.size(),
+            cursor: 0,
+            dir: ZipperDirection::Previous,
+        }
+    }
+}
+
+impl<T> FromIterator<T> for Zipper<T> {
+    fn from_iter<U: IntoIterator<Item = T>>(iter: U) -> Self {
+        let mut s = Self {
+            forward: VecDeque::new(),
+            backward: VecDeque::new(),
+        };
+
+        for t in iter.into_iter() {
+            s.forward.push_back(t);
+        }
+
+        s
+    }
+}
+
+/// an `Iterator` that yields the elements of the sequence the `Zipper` was opened over,
+/// starting with the currently focused element and continuing until all elements have been yielded.
+/// sequence ordering is preserved.
+pub struct ZipperIter<'a, T> {
+    /// sequence state
+    zipper: &'a Zipper<T>,
+    /// number of elements in the sequence
+    count: usize,
+    /// keep track of which items in the sequence we've already yielded -- otherwise we'll spin indefinitely.
+    cursor: usize,
+    /// this iterator can go forwards or backwards
+    dir: ZipperDirection,
+}
+
+impl<'a, T> Iterator for ZipperIter<'a, T>
+where
+    T: 'a,
+{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.cursor += 1;
+        let (nl, pl) = match self.dir {
+            ZipperDirection::Next => (&self.zipper.forward, &self.zipper.backward),
+            ZipperDirection::Previous => (&self.zipper.backward, &self.zipper.forward),
+        };
+
+        if self.cursor < self.count {
+            let nl_len = nl.len();
+            let pl_len = pl.len();
+
+            if self.cursor < nl_len {
+                nl.get(self.cursor)
+            } else {
+                // when we reach the bottom of `nl`, the next element in the sequence is the *last* element of pl
+                pl.get(pl_len - (self.cursor - nl_len + 1))
+            }
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct Circularized {
+    forward: Direction,
+    forward_cross: Direction,
+    backward: Direction,
+    backward_cross: Direction,
+}
+
+fn circularize_direction(cdir: ZipperDirection) -> Circularized {
+    match cdir {
+        ZipperDirection::Next => Circularized {
+            forward: Direction::Right,
+            forward_cross: Direction::Down,
+            backward: Direction::Left,
+            backward_cross: Direction::Up,
+        },
+        ZipperDirection::Previous => Circularized {
+            forward: Direction::Up,
+            forward_cross: Direction::Left,
+            backward: Direction::Down,
+            backward_cross: Direction::Right,
+        },
+    }
+}
 
 #[cfg(feature = "snowcap")]
 fn make_fb(win: &WindowHandle) {
@@ -224,38 +416,9 @@ async fn config() {
         .group("Process")
         .description("take a screenshot");
 
-    enum CircleDirection {
-        Clockwise,
-        CounterClockwise,
-    }
-
-    struct Circularized {
-        forward: Direction,
-        forward_cross: Direction,
-        backward: Direction,
-        backward_cross: Direction,
-    }
-
-    fn circularize_direction(cdir: CircleDirection) -> Circularized {
-        match cdir {
-            CircleDirection::Clockwise => Circularized {
-                forward: Direction::Right,
-                forward_cross: Direction::Down,
-                backward: Direction::Left,
-                backward_cross: Direction::Up,
-            },
-            CircleDirection::CounterClockwise => Circularized {
-                forward: Direction::Up,
-                forward_cross: Direction::Left,
-                backward: Direction::Down,
-                backward_cross: Direction::Right,
-            },
-        }
-    }
-
     fn on_next_circular(
         focused: Option<WindowHandle>,
-        circle: CircleDirection,
+        dir: ZipperDirection,
         action: impl FnOnce(&WindowHandle, &WindowHandle),
     ) {
         if let Some(focused) = focused {
@@ -264,7 +427,7 @@ async fn config() {
                 forward_cross,
                 backward,
                 backward_cross,
-            } = circularize_direction(circle);
+            } = circularize_direction(dir);
 
             let mut reversed: Vec<_> = focused.in_direction(backward).collect();
             let mut reversed_cross: Vec<_> = focused.in_direction(backward_cross).collect();
@@ -279,12 +442,6 @@ async fn config() {
                 .chain(focused.in_direction(forward_cross))
                 .chain(reversed)
                 .chain(reversed_cross)
-                // fallback if directional movement doesn't yield anything -- mainly needed to be able to rotate maximized windows
-                .chain(
-                    focused
-                        .tags()
-                        .flat_map(|tag| tag.windows().filter(|w| w != &focused)),
-                )
                 .next()
             {
                 action(&focused, &next)
@@ -292,9 +449,27 @@ async fn config() {
         }
     }
 
+    fn on_next_depth(
+        focused: Option<WindowHandle>,
+        dir: ZipperDirection,
+        action: impl FnOnce(&WindowHandle, &WindowHandle),
+    ) {
+        if let Some(focused) = focused {
+            let mut zipper = focused
+                .tags()
+                .flat_map(|tag| tag.windows())
+                .collect::<Zipper<_>>()
+                .refocus(|t| t == &focused);
+
+            if let Some(next) = zipper.next_in_dir(dir) {
+                action(&focused, next)
+            }
+        }
+    }
+
     fn move_focus() -> impl Fn(&WindowHandle, &WindowHandle) {
         |focused: &WindowHandle, next: &WindowHandle| {
-            if focused.maximized() {
+            if focused.maximized() || next.maximized() {
                 focused.lower();
                 next.set_maximized(true);
                 next.raise();
@@ -305,22 +480,14 @@ async fn config() {
 
     input::keybind(mod_key, 'j')
         .on_press(|| {
-            on_next_circular(
-                window::get_focused(),
-                CircleDirection::Clockwise,
-                move_focus(),
-            );
+            on_next_circular(window::get_focused(), ZipperDirection::Next, move_focus());
         })
         .group("Window")
         .description("focus next window");
 
     input::keybind(mod_key, Keysym::Tab)
         .on_press(|| {
-            on_next_circular(
-                window::get_focused(),
-                CircleDirection::Clockwise,
-                move_focus(),
-            );
+            on_next_depth(window::get_focused(), ZipperDirection::Next, move_focus());
         })
         .group("Window")
         .description("focus prev window");
@@ -329,7 +496,7 @@ async fn config() {
         .on_press(|| {
             on_next_circular(
                 window::get_focused(),
-                CircleDirection::CounterClockwise,
+                ZipperDirection::Previous,
                 move_focus(),
             );
         })
@@ -338,9 +505,9 @@ async fn config() {
 
     input::keybind(mod_key | Mod::SHIFT, Keysym::Tab)
         .on_press(|| {
-            on_next_circular(
+            on_next_depth(
                 window::get_focused(),
-                CircleDirection::CounterClockwise,
+                ZipperDirection::Previous,
                 move_focus(),
             );
         })
@@ -489,11 +656,7 @@ async fn config() {
 
     input::keybind(mod_key | Mod::SHIFT, 'j')
         .on_press(move || {
-            on_next_circular(
-                window::get_focused(),
-                CircleDirection::Clockwise,
-                swap_windows(),
-            );
+            on_next_circular(window::get_focused(), ZipperDirection::Next, swap_windows());
         })
         .group("Window")
         .description("shift window forward");
@@ -502,7 +665,7 @@ async fn config() {
         .on_press(move || {
             on_next_circular(
                 window::get_focused(),
-                CircleDirection::CounterClockwise,
+                ZipperDirection::Previous,
                 swap_windows(),
             );
         })
