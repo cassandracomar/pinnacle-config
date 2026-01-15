@@ -58,7 +58,18 @@ pub enum ZipperDirection {
     Previous,
 }
 
-impl<T: Debug> Zipper<T> {
+/// rotate one stack into the other if necessary. this circularizes the `Zipper`,
+/// ensuring that we always have a next element in the appropriate direction,
+/// so long as the zipper itself is not empty.
+fn rotate_stacks<T>(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
+    if nl.is_empty() {
+        for t in pl.drain(..) {
+            nl.push_front(t);
+        }
+    }
+}
+
+impl<T> Zipper<T> {
     /// find the next element in the sequence, in the provided direction. this function rotates back to the start of the
     /// sequence when `next_in_dir` is called on the last element of the sequence.
     pub fn next_in_dir(&mut self, dir: ZipperDirection) -> Option<&T> {
@@ -72,12 +83,15 @@ impl<T: Debug> Zipper<T> {
             ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
         };
 
-        if dir == ZipperDirection::Previous {
-            Self::rotate(nl, pl);
-        }
-        pl.push_front(nl.pop_front().unwrap());
-        if dir == ZipperDirection::Next {
-            Self::rotate(nl, pl);
+        match dir {
+            ZipperDirection::Next => {
+                pl.push_front(nl.pop_front().unwrap());
+                rotate_stacks(nl, pl);
+            }
+            ZipperDirection::Previous => {
+                rotate_stacks(nl, pl);
+                pl.push_front(nl.pop_front().unwrap());
+            }
         }
 
         self.focus()
@@ -100,17 +114,6 @@ impl<T: Debug> Zipper<T> {
         }
 
         self
-    }
-
-    /// rotate one stack into the other if necessary. this circularizes the `Zipper`,
-    /// ensuring that we always have a next element in the appropriate direction,
-    /// so long as the zipper itself is not empty.
-    pub fn rotate(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
-        if nl.is_empty() {
-            for t in pl.drain(..) {
-                nl.push_front(t);
-            }
-        }
     }
 
     pub fn remove_focus(mut self) -> Self {
@@ -150,7 +153,10 @@ impl<T: Debug> Zipper<T> {
         }
     }
 
-    pub fn dump(&self) {
+    pub fn dump(&self)
+    where
+        T: Debug,
+    {
         for t in self.forward.iter() {
             println!("forward has {t:?}");
         }
