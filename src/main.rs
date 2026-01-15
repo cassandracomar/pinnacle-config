@@ -60,18 +60,33 @@ pub enum SequenceDirection {
 }
 
 impl<T> Zipper<T> {
+    pub fn new() -> Self {
+        Self {
+            forward: VecDeque::new(),
+            backward: VecDeque::new(),
+        }
+    }
+
     /// move the focus to the next element in the sequence, in the provided direction. this
     /// function rotates back to the start of the sequence when `next_in_dir` is
     /// called on the last element of the sequence.
-    pub fn circle_step(self, dir: SequenceDirection) -> Self {
+    pub fn circle_step(&mut self, dir: SequenceDirection) -> Option<&T> {
         if self.size() == 0 {
-            return self;
+            return None;
         }
 
         match dir {
-            SequenceDirection::Next => self.advance_focus(dir).rotate_stacks(dir),
-            SequenceDirection::Previous => self.rotate_stacks(dir).advance_focus(dir),
+            SequenceDirection::Next => {
+                self.advance_focus(dir);
+                self.rotate_stacks(dir);
+            }
+            SequenceDirection::Previous => {
+                self.rotate_stacks(dir);
+                self.advance_focus(dir);
+            }
         }
+
+        self.focus()
     }
 
     pub fn size(&self) -> usize {
@@ -81,31 +96,31 @@ impl<T> Zipper<T> {
     /// skip ahead in the sequence until we reach the first element that satisfies the provided predicate.
     /// because `Zipper::next_in_dir` circularizes the `Zipper`, we will eventually find the requested element.
     /// this moves the `Zipper`'s focus to the requested element.
-    pub fn refocus(self, p: impl Fn(&T) -> bool) -> Self {
+    pub fn refocus(mut self, p: impl Fn(&T) -> bool) -> Self {
         let mut seen = self.size();
-        let s = self.circle_step(SequenceDirection::Next);
-        while let Some(t) = s.focus()
+        while let Some(t) = self.circle_step(SequenceDirection::Next)
             && !p(t)
             && seen > 0
         {
             seen -= 1;
         }
 
-        s
+        self
     }
 
     /// reset to the start of the sequence.
-    pub fn reset(mut self) -> Self {
-        for t in self.backward.drain(..) {
-            self.forward.push_front(t);
-        }
+    pub fn reset(&mut self) {
+        self.rotate_stacks(SequenceDirection::Next);
+    }
 
-        self
+    /// reset to the start of the reverse sequence.
+    pub fn reset_end(&mut self) {
+        self.rotate_stacks(SequenceDirection::Previous);
     }
 
     /// take one step in the requested direction. this pops an element from the stack matching the direction of motion
     /// and pushes it onto the reverse stacks.
-    pub fn advance_focus(mut self, dir: SequenceDirection) -> Self {
+    pub fn advance_focus(&mut self, dir: SequenceDirection) {
         match dir {
             SequenceDirection::Next => {
                 self.backward.push_front(self.forward.pop_front().unwrap());
@@ -114,15 +129,13 @@ impl<T> Zipper<T> {
                 self.forward.push_front(self.backward.pop_front().unwrap());
             }
         };
-
-        self
     }
 
     /// rotate the stack counter to the direction of motion into the stack matching the direction of motion, if necessary.
     /// this rotation is only required when the stack matching the direction of motion has run out of elements. we thus
     /// circularize the `Zipper`, ensuring that we always have a next element in the appropriate direction, so long as the
     /// `Zipper` itself is not empty.
-    pub fn rotate_stacks(mut self, dir: SequenceDirection) -> Self {
+    pub fn rotate_stacks(&mut self, dir: SequenceDirection) {
         let (nl, pl) = match dir {
             SequenceDirection::Next => (&mut self.forward, &mut self.backward),
             SequenceDirection::Previous => (&mut self.backward, &mut self.forward),
@@ -133,8 +146,6 @@ impl<T> Zipper<T> {
                 nl.push_front(t);
             }
         }
-
-        self
     }
 
     /// retrieve the element focused by the `Zipper`
@@ -223,13 +234,13 @@ fn cycle_next(
     action: impl FnOnce(&WindowHandle, &WindowHandle),
 ) {
     if let Some(focused) = focused {
-        let zipper = focused
+        let mut zipper = focused
             .tags()
             .flat_map(|tag| tag.windows())
             .collect::<Zipper<_>>()
             .refocus(|t| t == &focused);
 
-        if let Some(next) = zipper.circle_step(dir).focus() {
+        if let Some(next) = zipper.circle_step(dir) {
             action(&focused, next)
         }
     }
