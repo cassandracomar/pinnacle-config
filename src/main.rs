@@ -64,24 +64,21 @@ impl<T: Debug> Zipper<T> {
     pub fn next_in_dir(&mut self, dir: ZipperDirection) -> Option<&T> {
         // don't have a next if both stacks are empty
         if self.size() == 0 {
-            println!("dbg: empty zipper");
             return None;
         }
-
-        println!("pre next_in_dir: ");
-        self.dump();
 
         let (nl, pl) = match dir {
             ZipperDirection::Next => (&mut self.forward, &mut self.backward),
             ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
         };
 
-        Self::rotate(nl, pl, dir);
+        if dir == ZipperDirection::Previous {
+            Self::rotate(nl, pl);
+        }
         pl.push_front(nl.pop_front().unwrap());
-        Self::rotate(nl, pl, dir);
-
-        println!("after next_in_dir: ");
-        self.dump();
+        if dir == ZipperDirection::Next {
+            Self::rotate(nl, pl);
+        }
 
         self.focus()
     }
@@ -105,14 +102,12 @@ impl<T: Debug> Zipper<T> {
         self
     }
 
-    pub fn rotate(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>, dir: ZipperDirection) {
-        // circularize the zipper, ensuring that we always have a next element in the appropriate direction
-        // so long as the zipper itself is not empty.
+    /// rotate one stack into the other if necessary. this circularizes the `Zipper`,
+    /// ensuring that we always have a next element in the appropriate direction,
+    /// so long as the zipper itself is not empty.
+    pub fn rotate(nl: &mut VecDeque<T>, pl: &mut VecDeque<T>) {
         if nl.is_empty() {
-            println!("draining to fill {dir:?}");
-
             for t in pl.drain(..) {
-                println!("pushing {t:?} to {dir:?}");
                 nl.push_front(t);
             }
         }
