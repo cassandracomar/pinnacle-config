@@ -76,9 +76,11 @@ impl<T: Debug> Zipper<T> {
             ZipperDirection::Previous => (&mut self.backward, &mut self.forward),
         };
 
+        pl.push_front(nl.pop_front().unwrap());
+
         // circularize the zipper, ensuring that we always have a next element in the appropriate direction
         // so long as the zipper itself is not empty.
-        if nl.len() <= 1 {
+        if nl.is_empty() {
             println!("draining to fill {dir:?}");
 
             for t in pl.drain(..) {
@@ -86,7 +88,6 @@ impl<T: Debug> Zipper<T> {
                 nl.push_front(t);
             }
         }
-        pl.push_front(nl.pop_front().unwrap());
 
         println!("after next_in_dir: ");
         self.dump();
