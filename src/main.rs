@@ -105,11 +105,11 @@ impl<T: Debug> Zipper<T> {
     /// skip ahead in the sequence until we reach the first element that satisfies the provided predicate.
     /// because `Zipper::next_in_dir` circularizes the `Zipper`, we will eventually find the requested element.
     /// this moves the `Zipper`'s focus to the requested element.
-    pub fn refocus(mut self, p: impl Fn(&T) -> bool) -> Self {
+    pub fn refocus(mut self, dir: ZipperDirection, p: impl Fn(&T) -> bool) -> Self {
         let mut seen = self.size();
-        while let Some(t) = self.next_in_dir(ZipperDirection::Next)
+        while let Some(t) = self.next_in_dir(dir)
             && !p(t)
-            && seen > 1
+            && seen > 0
         {
             seen -= 1;
         }
@@ -226,11 +226,15 @@ fn cycle_next(
     action: impl FnOnce(&WindowHandle, &WindowHandle),
 ) {
     if let Some(focused) = focused {
+        let opp = match dir {
+            ZipperDirection::Next => ZipperDirection::Previous,
+            ZipperDirection::Previous => ZipperDirection::Next,
+        };
         let mut zipper = focused
             .tags()
             .flat_map(|tag| tag.windows())
             .collect::<Zipper<_>>()
-            .refocus(|t| t == &focused);
+            .refocus(opp, |t| t == &focused);
 
         if let Some(next) = zipper.next_in_dir(dir) {
             action(&focused, next)
