@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -57,15 +58,18 @@ pub enum ZipperDirection {
     Previous,
 }
 
-impl<T> Zipper<T> {
+impl<T: Debug> Zipper<T> {
     /// find the next element in the sequence, in the provided direction. this function rotates back to the start of the
     /// sequence when `next_in_dir` is called on the last element of the sequence.
     pub fn next_in_dir(&mut self, dir: ZipperDirection) -> Option<&T> {
         // don't have a next if both stacks are empty
-        if self.forward.is_empty() && self.backward.is_empty() {
+        if self.size() == 0 {
             println!("dbg: empty zipper");
             return None;
         }
+
+        println!("pre next_in_dir: ");
+        self.dump();
 
         let (nl, pl) = match dir {
             ZipperDirection::Next => (&mut self.forward, &mut self.backward),
@@ -82,12 +86,16 @@ impl<T> Zipper<T> {
             }
 
             for t in pl.drain(..) {
+                println!("pushing {t:?} to {dir:?}");
                 nl.push_front(t);
             }
         }
         pl.push_front(nl.pop_front().unwrap());
 
-        self.forward.front()
+        println!("post next_in_dir: ");
+        self.dump();
+
+        self.focus()
     }
 
     pub fn size(&self) -> usize {
@@ -138,6 +146,15 @@ impl<T> Zipper<T> {
             count: self.size(),
             cursor: 0,
             dir: ZipperDirection::Previous,
+        }
+    }
+
+    pub fn dump(&self) {
+        for t in self.forward.iter() {
+            println!("forward has {t:?}");
+        }
+        for t in self.backward.iter() {
+            println!("backward has {t:?}");
         }
     }
 }
