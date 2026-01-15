@@ -109,13 +109,9 @@ impl<T: Debug> Zipper<T> {
         let mut seen = self.size();
         while let Some(t) = self.next_in_dir(ZipperDirection::Next)
             && !p(t)
-            && seen > 0
+            && seen > 1
         {
             seen -= 1;
-        }
-
-        if let Some(next) = self.forward.pop_front() {
-            self.backward.push_front(next);
         }
 
         self
