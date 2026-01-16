@@ -10,9 +10,6 @@ pub struct UwsmCommand {
     once: bool,
     envs: HashMap<String, String>,
     unique: bool,
-    pipe_stdin: bool,
-    pipe_stdout: bool,
-    pipe_stderr: bool,
     unit_type: Option<UnitType>,
     slice_selector: Option<SliceSelector>,
     unit_properties: Option<HashMap<String, String>>,
@@ -63,9 +60,6 @@ impl UwsmCommand {
             once: false,
             envs: HashMap::new(),
             unique: false,
-            pipe_stdin: false,
-            pipe_stdout: false,
-            pipe_stderr: false,
             unit_type: None,
             slice_selector: None,
             unit_properties: None,
@@ -119,30 +113,6 @@ impl UwsmCommand {
     /// Causes this command to only spawn the program if it is the only instance currently running.
     pub fn unique(mut self) -> Self {
         self.unique = true;
-        self
-    }
-
-    /// Sets up a pipe to allow the config to write to the process's stdin.
-    ///
-    /// The pipe will be available through the spawned child's [`stdin`][Child::stdin].
-    pub fn pipe_stdin(mut self) -> Self {
-        self.pipe_stdin = true;
-        self
-    }
-
-    /// Sets up a pipe to allow the config to read from the process's stdout.
-    ///
-    /// The pipe will be available through the spawned child's [`stdout`][Child::stdout].
-    pub fn pipe_stdout(mut self) -> Self {
-        self.pipe_stdout = true;
-        self
-    }
-
-    /// Sets up a pipe to allow the config to read from the process's stderr.
-    ///
-    /// The pipe will be available through the spawned child's [`stderr`][Child::stderr].
-    pub fn pipe_stderr(mut self) -> Self {
-        self.pipe_stderr = true;
         self
     }
 
@@ -201,22 +171,19 @@ impl From<UwsmCommand> for Command {
             .file_prefix()
             .and_then(OsStr::to_str)
             .unwrap_or(&value.command);
-        let mut uwsm_cmd = vec![
-            "uwsm".to_string(),
-            "app".to_string(),
-            "-a".to_string(),
-            app_name.to_string(),
-        ];
+        let mut uwsm_cmd = vec!["app".to_owned(), "-a".to_owned(), app_name.to_owned()];
         if let Some(ut) = value.unit_type {
-            uwsm_cmd.append(&mut vec!["-t".to_string(), ut.to_string()]);
+            uwsm_cmd.append(&mut vec!["-t".to_owned(), ut.to_string()]);
         }
         if let Some(s) = value.slice_selector {
-            uwsm_cmd.append(&mut vec!["-s".to_string(), s.to_string()]);
+            uwsm_cmd.append(&mut vec!["-s".to_owned(), s.to_string()]);
         }
         for (k, v) in value.unit_properties.into_iter().flatten() {
-            uwsm_cmd.append(&mut vec!["-p".to_string(), format!("{k}={v}")]);
+            uwsm_cmd.append(&mut vec!["-p".to_owned(), format!("{k}={v}")]);
         }
-        let mut cmd = Command::with_shell(uwsm_cmd, &value.command);
+        uwsm_cmd.extend(["--".to_owned(), "systemd-cat".to_owned()]);
+
+        let mut cmd = Command::with_shell(uwsm_cmd, value.command);
         cmd.args(value.args);
         cmd.envs(value.envs);
         if value.once {
@@ -224,15 +191,6 @@ impl From<UwsmCommand> for Command {
         };
         if value.unique {
             cmd.unique();
-        }
-        if value.pipe_stdin {
-            cmd.pipe_stdin();
-        }
-        if value.pipe_stdout {
-            cmd.pipe_stdout();
-        }
-        if value.pipe_stderr {
-            cmd.pipe_stderr();
         }
         cmd
     }
