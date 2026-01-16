@@ -30,9 +30,11 @@ use pinnacle_api::window::WindowHandle;
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
 
+use crate::uwsm_command::UwsmCommand;
 use crate::zipper::SequenceDirection;
 use crate::zipper::Zipper;
 
+pub mod uwsm_command;
 pub mod zipper;
 
 fn cycle_next(
@@ -507,7 +509,7 @@ async fn config() {
     // `M-S-RET` spawns an eat terminal
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
-            Command::new("emacsclient")
+            UwsmCommand::new("emacsclient")
                 .args([
                     "-c",
                     "-F",
@@ -525,7 +527,7 @@ async fn config() {
     // `M-RET` spawns mu4e
     input::keybind(mod_key, Keysym::Return)
         .on_press(move || {
-            Command::new("emacsclient")
+            UwsmCommand::new("emacsclient")
                 .args(["-c", "-F", &*format!("({mu4e_frame_name})"), "-e", "(mu4e)"])
                 .spawn();
         })
@@ -712,9 +714,9 @@ async fn config() {
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
     Command::new("eww").args(["daemon"]).once().spawn();
-    Command::new(terminal).once().spawn();
-    Command::new("firefox").once().spawn();
-    Command::new("emacs").once().spawn();
+    UwsmCommand::new(terminal).once().spawn();
+    UwsmCommand::new("firefox").once().spawn();
+    UwsmCommand::new("emacs").once().spawn();
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
