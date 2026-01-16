@@ -19,6 +19,7 @@ use pinnacle_api::output;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::InputSignal;
 use pinnacle_api::signal::OutputSignal;
+use pinnacle_api::signal::WindowSignal;
 use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
@@ -672,6 +673,34 @@ async fn config() {
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
         output.focus();
+    })));
+
+    window::connect_signal(WindowSignal::Created(Box::new({
+        let requester = layout_requester.clone();
+        move |_win| {
+            requester.request_layout();
+        }
+    })));
+
+    window::connect_signal(WindowSignal::Focused(Box::new({
+        let requester = layout_requester.clone();
+        move |_win| {
+            requester.request_layout();
+        }
+    })));
+
+    window::connect_signal(WindowSignal::LayoutModeChanged(Box::new({
+        let requester = layout_requester.clone();
+        move |_win, _layout_mode| {
+            requester.request_layout();
+        }
+    })));
+
+    window::connect_signal(WindowSignal::Destroyed(Box::new({
+        let requester = layout_requester.clone();
+        move |_win, _title, _appid| {
+            requester.request_layout();
+        }
     })));
 
     #[cfg(feature = "snowcap")]
