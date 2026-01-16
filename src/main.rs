@@ -716,7 +716,6 @@ async fn config() {
     Command::new("eww").args(["daemon"]).once().spawn();
     UwsmCommand::new(terminal).unique().once();
     UwsmCommand::new("firefox").unique().once();
-    UwsmCommand::new("emacs").unique().once();
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
