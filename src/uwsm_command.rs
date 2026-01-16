@@ -14,6 +14,10 @@ pub struct UwsmCommand {
 }
 
 impl UwsmCommand {
+    /// spawn a new `Command` wrapped by UWSM. the latter ensures the app is started within a systemd
+    /// slice with the appropriate scope or session, under the compositor.
+    ///
+    /// TODO: expose UWSM args for slice/scope selection, unit properties, etc.
     pub fn new(command: impl ToString) -> UwsmCommand {
         UwsmCommand {
             command: command.to_string(),
@@ -27,6 +31,7 @@ impl UwsmCommand {
         }
     }
 
+    /// Adds multiple arguments to the command.
     pub fn args(self, args: impl IntoIterator<Item = impl ToString>) -> Self {
         UwsmCommand {
             args: args.into_iter().map(|s| ToString::to_string(&s)).collect(),
@@ -34,24 +39,29 @@ impl UwsmCommand {
         }
     }
 
+    /// Causes this command to spawn the program exactly once in the compositor's lifespan.
     pub fn once(self) -> Self {
         UwsmCommand { once: true, ..self }
     }
 
+    /// Spawns this command, returning the spawned process's standard io, if any.
     pub fn spawn(self) -> Option<Child> {
         Command::from(self).spawn()
     }
 
+    /// Adds an argument to the command.
     pub fn arg(mut self, arg: impl ToString) -> Self {
         self.args.push(arg.to_string());
         self
     }
 
+    /// Sets an environment variable that the process will spawn with.
     pub fn env(mut self, key: impl ToString, value: impl ToString) -> Self {
         self.envs.insert(key.to_string(), value.to_string());
         self
     }
 
+    /// Sets multiple environment variables that the process will spawn with.
     pub fn envs<I, K, V>(mut self, vars: I) -> Self
     where
         I: IntoIterator<Item = (K, V)>,
@@ -65,21 +75,31 @@ impl UwsmCommand {
         self
     }
 
+    /// Causes this command to only spawn the program if it is the only instance currently running.
     pub fn unique(mut self) -> Self {
         self.unique = true;
         self
     }
 
+    /// Sets up a pipe to allow the config to write to the process's stdin.
+    ///
+    /// The pipe will be available through the spawned child's [`stdin`][Child::stdin].
     pub fn pipe_stdin(mut self) -> Self {
         self.pipe_stdin = true;
         self
     }
 
+    /// Sets up a pipe to allow the config to read from the process's stdout.
+    ///
+    /// The pipe will be available through the spawned child's [`stdout`][Child::stdout].
     pub fn pipe_stdout(mut self) -> Self {
         self.pipe_stdout = true;
         self
     }
 
+    /// Sets up a pipe to allow the config to read from the process's stderr.
+    ///
+    /// The pipe will be available through the spawned child's [`stderr`][Child::stderr].
     pub fn pipe_stderr(mut self) -> Self {
         self.pipe_stderr = true;
         self
