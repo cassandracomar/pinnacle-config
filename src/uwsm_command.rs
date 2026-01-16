@@ -42,17 +42,17 @@ impl UwsmCommand {
         Command::from(self).spawn()
     }
 
-    pub fn arg(&mut self, arg: impl ToString) -> &mut Self {
+    pub fn arg(mut self, arg: impl ToString) -> Self {
         self.args.push(arg.to_string());
         self
     }
 
-    pub fn env(&mut self, key: impl ToString, value: impl ToString) -> &mut Self {
+    pub fn env(mut self, key: impl ToString, value: impl ToString) -> Self {
         self.envs.insert(key.to_string(), value.to_string());
         self
     }
 
-    pub fn envs<I, K, V>(&mut self, vars: I) -> &mut Self
+    pub fn envs<I, K, V>(mut self, vars: I) -> Self
     where
         I: IntoIterator<Item = (K, V)>,
         K: ToString,
@@ -65,22 +65,22 @@ impl UwsmCommand {
         self
     }
 
-    pub fn unique(&mut self) -> &mut Self {
+    pub fn unique(mut self) -> Self {
         self.unique = true;
         self
     }
 
-    pub fn pipe_stdin(&mut self) -> &mut Self {
+    pub fn pipe_stdin(mut self) -> Self {
         self.pipe_stdin = true;
         self
     }
 
-    pub fn pipe_stdout(&mut self) -> &mut Self {
+    pub fn pipe_stdout(mut self) -> Self {
         self.pipe_stdout = true;
         self
     }
 
-    pub fn pipe_stderr(&mut self) -> &mut Self {
+    pub fn pipe_stderr(mut self) -> Self {
         self.pipe_stderr = true;
         self
     }
