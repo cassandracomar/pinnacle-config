@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 pinnacle-api = { git = "http://github.com/pinnacle-comp/pinnacle", default-features = false }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"]}
 
 [features]
 default = ["snowcap"]

@@ -645,6 +645,7 @@ name = "pinnacle-config"
 version = "0.1.0"
 dependencies = [
  "pinnacle-api",
+ "tokio",
 ]
 
 [[package]]

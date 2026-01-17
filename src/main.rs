@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::Duration;
 
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
@@ -29,6 +30,7 @@ use pinnacle_api::window::WindowHandle;
 
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
+use tokio::time::sleep;
 
 use crate::uwsm_command::UwsmCommand;
 use crate::zipper::SequenceDirection;
@@ -702,10 +704,21 @@ async fn config() {
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
+    sleep(Duration::from_secs(1)).await;
     output::for_each_output(|output| {
         let output_name = output.name();
         let eww_service = format!("eww-open@{output_name}");
-
+        // let monitor = format!("monitor={output_name}");
+        // Command::new("eww")
+        //     .args([
+        //         "open",
+        //         "--screen",
+        //         &*output.name(),
+        //         "primary",
+        //         "--arg",
+        //         &*monitor,
+        //     ])
+        //     .spawn();
         Command::new("systemctl")
             .args(["start", "--user", &eww_service])
             .spawn();
