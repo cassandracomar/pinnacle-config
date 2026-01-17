@@ -717,7 +717,6 @@ async fn config() {
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
-    Command::new("eww").args(["daemon"]).once().spawn();
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
 
