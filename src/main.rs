@@ -540,6 +540,7 @@ async fn config() {
 
     let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
+    // Command::new("eww").args(["daemon"]).once().spawn();
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
         output.set_mode(3840, 2160, 120000);
@@ -548,17 +549,20 @@ async fn config() {
 
         let mut tags = tag::add(output, tag_names);
         let output_name = output.name();
-        let monitor = format!("monitor={output_name}");
+        let eww_service = format!("eww-open@{output_name}");
         tags.next().unwrap().set_active(true);
-        Command::new("eww")
-            .args([
-                "open",
-                "--screen",
-                &*output.name(),
-                "primary",
-                "--arg",
-                &*monitor,
-            ])
+        // Command::new("eww")
+        //     .args([
+        //         "open",
+        //         "--screen",
+        //         &*output.name(),
+        //         "primary",
+        //         "--arg",
+        //         &*monitor,
+        //     ])
+        //     .spawn();
+        Command::new("systemctl")
+            .args(["start", "--user", &eww_service])
             .spawn();
     });
 
