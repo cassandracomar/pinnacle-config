@@ -540,7 +540,6 @@ async fn config() {
 
     let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
-    Command::new("eww").args(["daemon"]).once().spawn();
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
         output.set_mode(3840, 2160, 120000);
@@ -714,16 +713,13 @@ async fn config() {
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
+    Command::new("eww").args(["daemon"]).once().spawn();
+    UwsmCommand::new(terminal).unique().once();
+    UwsmCommand::new("firefox").unique().once();
+
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
     layout_requester.request_layout();
-
-    UwsmCommand::new(terminal).once().spawn();
-    UwsmCommand::new("firefox").once().spawn();
-    UwsmCommand::new("emacsclient")
-        .args(["-w", "10", "-c"])
-        .once()
-        .spawn();
 }
 
 pinnacle_api::main!(config);
