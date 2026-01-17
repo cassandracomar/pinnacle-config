@@ -714,8 +714,8 @@ async fn config() {
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
     Command::new("eww").args(["daemon"]).once().spawn();
-    UwsmCommand::new(terminal).unique().once();
-    UwsmCommand::new("firefox").unique().once();
+    UwsmCommand::new(terminal).unique().once().spawn();
+    UwsmCommand::new("firefox").unique().once().spawn();
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
