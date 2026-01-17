@@ -708,17 +708,6 @@ async fn config() {
     output::for_each_output(|output| {
         let output_name = output.name();
         let eww_service = format!("eww-open@{output_name}");
-        // let monitor = format!("monitor={output_name}");
-        // Command::new("eww")
-        //     .args([
-        //         "open",
-        //         "--screen",
-        //         &*output.name(),
-        //         "primary",
-        //         "--arg",
-        //         &*monitor,
-        //     ])
-        //     .spawn();
         Command::new("systemctl")
             .args(["start", "--user", &eww_service])
             .spawn();
@@ -726,6 +715,11 @@ async fn config() {
 
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
+    UwsmCommand::new("emacsclient")
+        .args(["-c"])
+        .unique()
+        .once()
+        .spawn();
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
