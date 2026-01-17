@@ -542,7 +542,6 @@ async fn config() {
 
     let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
-    // Command::new("eww").args(["daemon"]).once().spawn();
     // Setup all monitors with tags "1" through "9"
     output::for_each_output(move |output| {
         output.set_mode(3840, 2160, 120000);
@@ -704,6 +703,7 @@ async fn config() {
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
+    // need to delay creating the bar to give the daemon a bit of time to start
     sleep(Duration::from_secs(1)).await;
     output::for_each_output(|output| {
         let output_name = output.name();
@@ -715,6 +715,9 @@ async fn config() {
 
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
+
+    // give it another second before trying to start emacsclient
+    sleep(Duration::from_secs(1)).await;
     UwsmCommand::new("emacsclient")
         .args(["-c"])
         .unique()
