@@ -171,7 +171,12 @@ impl From<UwsmCommand> for Command {
             .file_prefix()
             .and_then(OsStr::to_str)
             .unwrap_or(&value.command);
-        let mut uwsm_cmd = vec!["app".to_owned(), "-a".to_owned(), app_name.to_owned()];
+        let mut uwsm_cmd = vec![
+            "uwsm".to_owned(),
+            "app".to_owned(),
+            "-a".to_owned(),
+            app_name.to_owned(),
+        ];
         if let Some(ut) = value.unit_type {
             uwsm_cmd.append(&mut vec!["-t".to_owned(), ut.to_string()]);
         }
