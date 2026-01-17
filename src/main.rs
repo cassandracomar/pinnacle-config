@@ -548,22 +548,7 @@ async fn config() {
         output.set_vrr(output::Vrr::OnDemand);
 
         let mut tags = tag::add(output, tag_names);
-        let output_name = output.name();
-        let eww_service = format!("eww-open@{output_name}");
         tags.next().unwrap().set_active(true);
-        // Command::new("eww")
-        //     .args([
-        //         "open",
-        //         "--screen",
-        //         &*output.name(),
-        //         "primary",
-        //         "--arg",
-        //         &*monitor,
-        //     ])
-        //     .spawn();
-        Command::new("systemctl")
-            .args(["start", "--user", &eww_service])
-            .spawn();
     });
 
     for (tag_name, index) in tag_names.into_iter().zip(('1'..='9').chain('0'..='0')) {
@@ -716,6 +701,15 @@ async fn config() {
     }
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
+
+    output::for_each_output(|output| {
+        let output_name = output.name();
+        let eww_service = format!("eww-open@{output_name}");
+
+        Command::new("systemctl")
+            .args(["start", "--user", &eww_service])
+            .spawn();
+    });
 
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
