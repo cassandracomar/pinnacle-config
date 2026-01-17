@@ -716,14 +716,6 @@ async fn config() {
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
 
-    // give it another second before trying to start emacsclient
-    sleep(Duration::from_secs(1)).await;
-    UwsmCommand::new("emacsclient")
-        .args(["-c"])
-        .unique()
-        .once()
-        .spawn();
-
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
     layout_requester.request_layout();
