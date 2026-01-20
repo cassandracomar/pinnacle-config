@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use list_zipper::{SequenceDirection, Zipper};
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
 use pinnacle_api::input::Keysym;
@@ -33,11 +34,8 @@ use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorde
 use tokio::time::sleep;
 
 use crate::uwsm_command::UwsmCommand;
-use crate::zipper::SequenceDirection;
-use crate::zipper::Zipper;
 
 pub mod uwsm_command;
-pub mod zipper;
 
 fn cycle_next(
     focused: Option<WindowHandle>,
@@ -45,13 +43,12 @@ fn cycle_next(
     action: impl FnOnce(&WindowHandle, &WindowHandle),
 ) {
     if let Some(focused) = focused {
-        let zipper = focused
-            .tags()
-            .flat_map(|tag| tag.windows())
-            .collect::<Zipper<_>>()
-            .refocus(|t| t == &focused);
+        let mut windows = tag::get_all()
+            .filter(|t| t.active())
+            .flat_map(|t| t.windows())
+            .collect::<Zipper<_>>();
 
-        if let Some(next) = zipper.circle_step(dir).focus() {
+        if let Some(next) = windows.refocus(|win| win == &focused).step(dir).focus() {
             action(&focused, next)
         }
     }
