@@ -2,7 +2,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use futures::FutureExt;
 use list_zipper::{SequenceDirection, Zipper};
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
@@ -33,6 +32,7 @@ use pinnacle_api::window::WindowHandle;
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
 use tokio::time::sleep;
+use tokio::time::timeout;
 use users::get_current_uid;
 
 use crate::uwsm_command::UwsmCommand;
@@ -93,6 +93,17 @@ fn move_focus(focused: &WindowHandle, next: &WindowHandle) {
 fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
     focused.swap(next);
     focused.set_focused(true);
+}
+
+async fn ensure_emacsclient_spawned() {
+    let uid = get_current_uid();
+    let args = ["-c", "-s", &format!("/run/user/{uid}/emacs/server")];
+    while let Some(child) = UwsmCommand::new("emacsclient").args(args).spawn()
+        && let Ok(res) = timeout(Duration::from_secs(1), child.wait_async()).await
+        && res.exit_code != Some(0)
+    {
+        sleep(Duration::from_secs(1)).await;
+    }
 }
 
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
@@ -715,21 +726,7 @@ async fn config() {
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
 
-    tokio::spawn(async move {
-        let uid = get_current_uid();
-        while let Some(child) = UwsmCommand::new("emacsclient")
-            .args(["-c", "-s", &format!("/run/user/{uid}/emacs/server")])
-            .spawn()
-            && let Ok(exit_code) = tokio::time::timeout(
-                Duration::from_secs(1),
-                child.wait_async().map(|res| res.exit_code),
-            )
-            .await
-            && exit_code != Some(0)
-        {
-            sleep(Duration::from_secs(1)).await;
-        }
-    });
+    tokio::spawn(ensure_emacsclient_spawned());
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);

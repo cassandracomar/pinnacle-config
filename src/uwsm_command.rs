@@ -4,6 +4,7 @@ use pinnacle_api::process::{Child, Command};
 
 /// `Command` wrapper that spawns via `uwsm app`. this ensures processes are started within an
 /// appropriate systemd slice, with a matching unit.
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UwsmCommand {
     command: String,
     args: Vec<String>,
@@ -15,6 +16,7 @@ pub struct UwsmCommand {
     unit_properties: Option<HashMap<String, String>>,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum UnitType {
     Scope,
     Service,
@@ -30,6 +32,7 @@ impl Display for UnitType {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SliceSelector {
     App,
     Background,
