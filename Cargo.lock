@@ -653,6 +653,7 @@ dependencies = [
 name = "pinnacle-config"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "list-zipper",
  "pinnacle-api",
  "tokio",

@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use futures::FutureExt;
 use list_zipper::{SequenceDirection, Zipper};
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
@@ -711,15 +712,24 @@ async fn config() {
             .spawn();
     });
 
-    let uid = get_current_uid();
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
 
-    // give the emacs daemon a bit more time to spawn
-    sleep(Duration::from_secs(1)).await;
-    UwsmCommand::new("emacsclient")
-        .args(["-c", "-s", &format!("/run/user/{uid}/emacs/server")])
-        .spawn();
+    tokio::spawn(async move {
+        let uid = get_current_uid();
+        while let Some(child) = UwsmCommand::new("emacsclient")
+            .args(["-c", "-s", &format!("/run/user/{uid}/emacs/server")])
+            .spawn()
+            && let Ok(exit_code) = tokio::time::timeout(
+                Duration::from_secs(1),
+                child.wait_async().map(|res| res.exit_code),
+            )
+            .await
+            && exit_code != Some(0)
+        {
+            sleep(Duration::from_secs(1)).await;
+        }
+    });
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
