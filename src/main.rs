@@ -32,6 +32,7 @@ use pinnacle_api::window::WindowHandle;
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
 use tokio::time::sleep;
+use users::get_current_uid;
 
 use crate::uwsm_command::UwsmCommand;
 
@@ -710,8 +711,15 @@ async fn config() {
             .spawn();
     });
 
+    let uid = get_current_uid();
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
+
+    // give the emacs daemon a bit more time to spawn
+    sleep(Duration::from_secs(1)).await;
+    UwsmCommand::new("emacsclient")
+        .args(["-c", "-s", &format!("/run/user/{uid}/emacs/server")])
+        .spawn();
 
     // Add borders to already existing windows.
     window::get_all().for_each(apply_window_rules);
