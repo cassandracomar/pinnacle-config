@@ -18,6 +18,7 @@ use pinnacle_api::layout::LayoutResponse;
 use pinnacle_api::layout::generators::Cycle;
 use pinnacle_api::layout::generators::MasterStack;
 use pinnacle_api::output;
+use pinnacle_api::output::OutputHandle;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::InputSignal;
 use pinnacle_api::signal::OutputSignal;
@@ -33,11 +34,17 @@ use pinnacle_api::window::WindowHandle;
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
 use tokio::time::sleep;
 use tokio::time::timeout;
+use tracing_subscriber::EnvFilter;
 use users::get_current_uid;
 
 use crate::uwsm_command::UwsmCommand;
 
 pub mod uwsm_command;
+
+fn setup_logger() {
+    let filter = EnvFilter::from_default_env();
+    tracing_subscriber::fmt().with_env_filter(filter).init();
+}
 
 fn cycle_next(
     focused: Option<WindowHandle>,
@@ -108,6 +115,8 @@ async fn ensure_emacsclient_spawned() {
 
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
 async fn config() {
+    setup_logger();
+
     // Change the mod key to `Alt` when running as a nested window.
     let mod_key = Mod::ALT;
     let mod4_key = Mod::SUPER;
@@ -553,14 +562,17 @@ async fn config() {
     let tag_names = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
     // Setup all monitors with tags "1" through "9"
-    output::for_each_output(move |output| {
+    let output_setup = move |output: &OutputHandle| {
+        tracing::info!(output = %output.name(), "setting up output");
+
         output.set_mode(3840, 2160, 120000);
         output.set_scale(2.0);
         output.set_vrr(output::Vrr::OnDemand);
 
         let mut tags = tag::add(output, tag_names);
         tags.next().unwrap().set_active(true);
-    });
+    };
+    output::for_each_output(output_setup);
 
     for (tag_name, index) in tag_names.into_iter().zip(('1'..='9').chain('0'..='0')) {
         // `mod_key + 1-9` switches to tag "1" to "9"
@@ -675,6 +687,11 @@ async fn config() {
     // Focus outputs when the pointer enters them
     output::connect_signal(OutputSignal::PointerEnter(Box::new(|output| {
         output.focus();
+    })));
+
+    output::connect_signal(OutputSignal::Connect(Box::new(output_setup)));
+    output::connect_signal(OutputSignal::Disconnect(Box::new(|output| {
+        tracing::info!(output = %output.name(), "disconnected output");
     })));
 
     window::connect_signal(WindowSignal::Created(Box::new({
