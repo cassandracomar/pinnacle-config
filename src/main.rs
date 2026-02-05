@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use itertools::Itertools;
 use list_zipper::{SequenceDirection, Zipper};
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
@@ -197,6 +198,16 @@ async fn config() {
         .set_as_reload_config()
         .group("Compositor")
         .description("Reload Pinnacle Config");
+
+    // mod + ESC toggles output power
+    input::keybind(mod_key, Keysym::Escape)
+        .on_press(|| {
+            output::for_each_output(|output| {
+                output.toggle_powered();
+            });
+        })
+        .group("Compositor")
+        .description("toggle output power");
 
     #[cfg(feature = "snowcap")]
     {
@@ -565,7 +576,20 @@ async fn config() {
     let output_setup = move |output: &OutputHandle| {
         tracing::info!(output = %output.name(), "setting up output");
 
-        output.set_mode(3840, 2160, 120000);
+        if let Some(mode) = output
+            .modes()
+            .sorted_by(|mode1, mode2| {
+                Ord::cmp(
+                    &(mode2.size.w * mode2.size.h),
+                    &(mode1.size.w * mode1.size.h),
+                )
+                .then(Ord::cmp(&mode2.refresh_rate_mhz, &mode1.refresh_rate_mhz))
+            })
+            .find(|_| true)
+        {
+            println!("setting mode {mode:?}");
+            output.set_mode(mode.size.w, mode.size.h, mode.refresh_rate_mhz);
+        }
         output.set_scale(2.0);
         output.set_vrr(output::Vrr::OnDemand);
 
