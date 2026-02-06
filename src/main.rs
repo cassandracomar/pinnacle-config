@@ -200,6 +200,8 @@ async fn config() {
         .description("Reload Pinnacle Config");
 
     // mod + ESC toggles output power
+    // without this, physically powering the monitor off leaves pinnacle unaware that the monitor was powered off, causing desync.
+    // I suspect this is due to an amdgpu/HDMI bug -- the monitor's state is never updated.
     input::keybind(mod_key, Keysym::Escape)
         .on_press(|| {
             output::for_each_output(|output| {
@@ -208,6 +210,15 @@ async fn config() {
         })
         .group("Compositor")
         .description("toggle output power");
+
+    // `mod_key + s` suspends the computer.
+    // this may fry the cpu on an asrock mobo, guess we'll see.
+    input::keybind(mod_key, 's')
+        .on_press(|| {
+            Command::new("systemctl").arg("suspend").spawn();
+        })
+        .group("System")
+        .description("suspend the computer");
 
     #[cfg(feature = "snowcap")]
     {
