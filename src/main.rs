@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -19,6 +20,7 @@ use pinnacle_api::layout::LayoutResponse;
 use pinnacle_api::layout::generators::Cycle;
 use pinnacle_api::layout::generators::MasterStack;
 use pinnacle_api::output;
+use pinnacle_api::output::Mode;
 use pinnacle_api::output::OutputHandle;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::InputSignal;
@@ -27,6 +29,7 @@ use pinnacle_api::signal::WindowSignal;
 use pinnacle_api::tag;
 use pinnacle_api::util::Batch;
 use pinnacle_api::util::Direction;
+use pinnacle_api::util::Size;
 use pinnacle_api::window;
 use pinnacle_api::window::VrrDemand;
 use pinnacle_api::window::WindowHandle;
@@ -112,6 +115,14 @@ async fn ensure_emacsclient_spawned() {
     {
         sleep(Duration::from_secs(1)).await;
     }
+}
+
+fn size_cmp(size1: &Size, size2: &Size) -> Ordering {
+    (&(size1.w * size2.h)).cmp(&(size1.w * size2.h))
+}
+
+fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
+    size_cmp(&mode1.size, &mode2.size).then((&mode1.refresh_rate_mhz).cmp(&mode2.refresh_rate_mhz))
 }
 
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
@@ -595,17 +606,7 @@ async fn config() {
     let output_setup = move |output: &OutputHandle| {
         tracing::info!(output = %output.name(), "setting up output");
 
-        if let Some(mode) = output
-            .modes()
-            .sorted_by(|mode1, mode2| {
-                Ord::cmp(
-                    &(mode2.size.w * mode2.size.h),
-                    &(mode1.size.w * mode1.size.h),
-                )
-                .then(Ord::cmp(&mode2.refresh_rate_mhz, &mode1.refresh_rate_mhz))
-            })
-            .find(|_| true)
-        {
+        if let Some(mode) = output.modes().max_by(mode_cmp) {
             println!("setting mode {mode:?}");
             output.set_mode(mode.size.w, mode.size.h, mode.refresh_rate_mhz);
         }
