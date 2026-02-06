@@ -534,8 +534,8 @@ async fn config() {
                 let resize = master
                     .output()
                     .and_then(|output| output.current_mode())
-                    .map(|mode| (mode.size.w as i32) / 10)
-                    .unwrap_or(384);
+                    .map(|mode| (mode.size.w as i32) / 20)
+                    .unwrap_or(192);
                 master.resize_tile(0, -1 * resize, 0, 0);
             }
         })
@@ -552,8 +552,8 @@ async fn config() {
                 let resize = master
                     .output()
                     .and_then(|output| output.current_mode())
-                    .map(|mode| (mode.size.w as i32) / 10)
-                    .unwrap_or(384);
+                    .map(|mode| (mode.size.w as i32) / 20)
+                    .unwrap_or(192);
                 master.resize_tile(0, resize, 0, 0);
             }
         })
