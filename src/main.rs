@@ -215,7 +215,7 @@ async fn config() {
     // this may fry the cpu on an asrock mobo, guess we'll see.
     input::keybind(mod_key, 's')
         .on_press(|| {
-            Command::with_shell(["nu", "-c"], "sleep 5sec; systemctl suspend");
+            Command::with_shell(["bash", "-c"], "sleep 5; systemctl suspend");
         })
         .group("System")
         .description("suspend the computer");
