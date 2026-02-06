@@ -117,7 +117,7 @@ async fn ensure_emacsclient_spawned() {
 }
 
 fn size_cmp(size1: &Size, size2: &Size) -> Ordering {
-    (&(size1.w * size2.h)).cmp(&(size1.w * size2.h))
+    (&(size1.w * size1.h)).cmp(&(size2.w * size2.h))
 }
 
 fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
