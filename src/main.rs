@@ -607,8 +607,12 @@ async fn config() {
         tracing::info!(output = %output.name(), "setting up output");
 
         if let Some(mode) = output.modes().max_by(mode_cmp) {
-            println!("setting mode {mode:?}");
-            output.set_mode(mode.size.w, mode.size.h, mode.refresh_rate_mhz);
+            let Mode {
+                size: Size { w, h },
+                refresh_rate_mhz,
+            } = mode;
+            println!("setting mode {w}x{h}@{refresh_rate_mhz}");
+            output.set_mode(w, h, refresh_rate_mhz);
         }
         output.set_scale(2.0);
         output.set_vrr(output::Vrr::OnDemand);
