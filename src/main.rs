@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use itertools::Itertools;
 use list_zipper::{SequenceDirection, Zipper};
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
