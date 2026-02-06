@@ -603,14 +603,14 @@ async fn config() {
 
     // Setup all monitors with tags "1" through "9"
     let output_setup = move |output: &OutputHandle| {
-        tracing::info!(output = %output.name(), "setting up output");
+        let output_name = output.name();
 
         if let Some(mode) = output.modes().max_by(mode_cmp) {
             let Mode {
                 size: Size { w, h },
                 refresh_rate_mhz,
             } = mode;
-            println!("setting mode {w}x{h}@{refresh_rate_mhz}");
+            println!("setting mode {w}x{h}@{refresh_rate_mhz} on {output_name}");
             output.set_mode(w, h, refresh_rate_mhz);
         }
         output.set_scale(2.0);
