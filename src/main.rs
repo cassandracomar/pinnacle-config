@@ -177,9 +177,9 @@ async fn config() {
         .group("Window")
         .description("Toggle floating");
 
-    // `mod_key + s` shows the bindings overlay
+    // `mod_key + k` shows the bindings overlay
     #[cfg(feature = "snowcap")]
-    input::keybind(mod_key, 's')
+    input::keybind(mod_key, 'k')
         .on_press(|| {
             pinnacle_api::snowcap::BindOverlay::new().show();
         })
