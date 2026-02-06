@@ -215,6 +215,13 @@ async fn config() {
     // this may fry the cpu on an asrock mobo, guess we'll see.
     input::keybind(mod_key, 's')
         .on_press(|| {
+            // give the user a bit of time to stop touching the keyboard.
+            //
+            // keyboard (or mouse activity if you don't install a udev rule to block it) will start wakeup before sleep
+            // completes. naturally, this crashes the amdgpu driver.
+            //
+            // not sure if using [std::thread::sleep] here causes any problems -- I think the compositor is calling
+            // [tokio::task::block_in_place] anyway so it should be fine but it's something to watch out for.
             std::thread::sleep(Duration::from_secs(2));
             Command::new("systemctl").arg("suspend").spawn();
         })
