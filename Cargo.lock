@@ -137,6 +137,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -645,7 +651,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pinnacle-api"
 version = "0.2.0"
-source = "git+http://github.com/pinnacle-comp/pinnacle#bc0912b6334c9a5ef975ce2849b96b44f6ee7a26"
+source = "git+http://github.com/pinnacle-comp/pinnacle#56cc34e44ebc7966e38fe0915be93c99b21ee518"
 dependencies = [
  "bitflags",
  "futures",
@@ -665,7 +671,7 @@ dependencies = [
 [[package]]
 name = "pinnacle-api-defs"
 version = "0.0.1"
-source = "git+http://github.com/pinnacle-comp/pinnacle#bc0912b6334c9a5ef975ce2849b96b44f6ee7a26"
+source = "git+http://github.com/pinnacle-comp/pinnacle#56cc34e44ebc7966e38fe0915be93c99b21ee518"
 dependencies = [
  "prost",
  "tonic",
@@ -893,9 +899,10 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "snowcap-api"
 version = "0.1.0"
-source = "git+http://github.com/pinnacle-comp/pinnacle#bc0912b6334c9a5ef975ce2849b96b44f6ee7a26"
+source = "git+http://github.com/pinnacle-comp/pinnacle#56cc34e44ebc7966e38fe0915be93c99b21ee518"
 dependencies = [
  "bitflags",
+ "dyn-clone",
  "from_variants",
  "futures",
  "hyper-util",
@@ -913,7 +920,7 @@ dependencies = [
 [[package]]
 name = "snowcap-api-defs"
 version = "0.1.0"
-source = "git+http://github.com/pinnacle-comp/pinnacle#bc0912b6334c9a5ef975ce2849b96b44f6ee7a26"
+source = "git+http://github.com/pinnacle-comp/pinnacle#56cc34e44ebc7966e38fe0915be93c99b21ee518"
 dependencies = [
  "prost",
  "tonic",
