@@ -650,7 +650,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pinnacle-api"
 version = "0.2.0"
-source = "git+http://github.com/pinnacle-comp/pinnacle#9d483fa4d5d2ad322e1e420f475b7289d67e73b3"
+source = "git+http://github.com/pinnacle-comp/pinnacle#2b73b571c4551e872f373fd27648fcbec82d6ff3"
 dependencies = [
  "bitflags",
  "futures",
@@ -670,7 +670,7 @@ dependencies = [
 [[package]]
 name = "pinnacle-api-defs"
 version = "0.0.1"
-source = "git+http://github.com/pinnacle-comp/pinnacle#9d483fa4d5d2ad322e1e420f475b7289d67e73b3"
+source = "git+http://github.com/pinnacle-comp/pinnacle#2b73b571c4551e872f373fd27648fcbec82d6ff3"
 dependencies = [
  "prost",
  "tonic",
@@ -898,7 +898,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "snowcap-api"
 version = "0.1.0"
-source = "git+http://github.com/pinnacle-comp/pinnacle#9d483fa4d5d2ad322e1e420f475b7289d67e73b3"
+source = "git+http://github.com/pinnacle-comp/pinnacle#2b73b571c4551e872f373fd27648fcbec82d6ff3"
 dependencies = [
  "bitflags",
  "dyn-clone",
@@ -919,7 +919,7 @@ dependencies = [
 [[package]]
 name = "snowcap-api-defs"
 version = "0.1.0"
-source = "git+http://github.com/pinnacle-comp/pinnacle#9d483fa4d5d2ad322e1e420f475b7289d67e73b3"
+source = "git+http://github.com/pinnacle-comp/pinnacle#2b73b571c4551e872f373fd27648fcbec82d6ff3"
 dependencies = [
  "prost",
  "tonic",
