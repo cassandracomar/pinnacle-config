@@ -605,7 +605,12 @@ async fn config() {
     let output_setup = move |output: &OutputHandle| {
         let output_name = output.name();
 
-        if let Some(mode) = output.modes().max_by(mode_cmp) {
+        if let Some(mode) = output
+            .modes()
+            // some outputs report a weird 4096x2160 mode that doesn't work well
+            .filter(|mode| mode.size.w <= 3840 && mode.size.h <= 2160)
+            .max_by(mode_cmp)
+        {
             let Mode {
                 size: Size { w, h },
                 refresh_rate_mhz,
