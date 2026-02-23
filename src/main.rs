@@ -124,6 +124,14 @@ fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
     size_cmp(&mode1.size, &mode2.size).then((&mode1.refresh_rate_mhz).cmp(&mode2.refresh_rate_mhz))
 }
 
+fn ensure_bar(output: &OutputHandle) {
+    let output_name = output.name();
+    let eww_service = format!("eww-open@{output_name}");
+    Command::new("systemctl")
+        .args(["restart", "--user", &eww_service])
+        .spawn();
+}
+
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
 async fn config() {
     setup_logger();
@@ -745,6 +753,9 @@ async fn config() {
     output::connect_signal(OutputSignal::Disconnect(Box::new(|output| {
         tracing::info!(output = %output.name(), "disconnected output");
     })));
+    output::connect_signal(OutputSignal::Resize(Box::new(|output, _, _| {
+        ensure_bar(output);
+    })));
 
     window::connect_signal(WindowSignal::Created(Box::new({
         let requester = layout_requester.clone();
@@ -784,13 +795,7 @@ async fn config() {
 
     // need to delay creating the bar to give the daemon a bit of time to start
     sleep(Duration::from_secs(1)).await;
-    output::for_each_output(|output| {
-        let output_name = output.name();
-        let eww_service = format!("eww-open@{output_name}");
-        Command::new("systemctl")
-            .args(["start", "--user", &eww_service])
-            .spawn();
-    });
+    output::for_each_output(ensure_bar);
 
     UwsmCommand::new(terminal).unique().once().spawn();
     UwsmCommand::new("firefox").unique().once().spawn();
