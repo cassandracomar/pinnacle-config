@@ -246,6 +246,23 @@ async fn config() {
         .group("System")
         .description("suspend the computer");
 
+    input::keybind(Mod::empty(), Keysym::XF86_AudioLowerVolume)
+        .on_press(|| {
+            Command::new("pactl")
+                .args(["set-sink-volume", "@DEFAULT_SINK@", "-5%"])
+                .spawn();
+        })
+        .group("UI")
+        .description("lower audio volume");
+    input::keybind(Mod::empty(), Keysym::XF86_AudioRaiseVolume)
+        .on_press(|| {
+            Command::new("pactl")
+                .args(["set-sink-volume", "@DEFAULT_SINK@", "+5%"])
+                .spawn();
+        })
+        .group("UI")
+        .description("lower audio volume");
+
     #[cfg(feature = "snowcap")]
     {
         // `mod_key + shift + q` shows the quit prompt
