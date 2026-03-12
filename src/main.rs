@@ -197,7 +197,7 @@ async fn config() {
 
     // `mod_key + k` shows the bindings overlay
     #[cfg(feature = "snowcap")]
-    input::keybind(mod_key, 'k')
+    input::keybind(mod_key | Mod::SHIFT, 'k')
         .on_press(|| {
             pinnacle_api::snowcap::BindOverlay::new().show();
         })
