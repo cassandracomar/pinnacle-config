@@ -117,11 +117,11 @@ async fn ensure_emacsclient_spawned() {
 }
 
 fn size_cmp(size1: &Size, size2: &Size) -> Ordering {
-    (&(size1.w * size1.h)).cmp(&(size2.w * size2.h))
+    (size1.w * size1.h).cmp(&(size2.w * size2.h))
 }
 
 fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
-    size_cmp(&mode1.size, &mode2.size).then((&mode1.refresh_rate_mhz).cmp(&mode2.refresh_rate_mhz))
+    size_cmp(&mode1.size, &mode2.size).then(mode1.refresh_rate_mhz.cmp(&mode2.refresh_rate_mhz))
 }
 
 fn ensure_bar(output: &OutputHandle) {
@@ -196,13 +196,13 @@ async fn config() {
         .description("Toggle floating");
 
     // `mod_key + k` shows the bindings overlay
-    #[cfg(feature = "snowcap")]
-    input::keybind(mod_key | Mod::SHIFT, 'k')
-        .on_press(|| {
-            pinnacle_api::snowcap::BindOverlay::new().show();
-        })
-        .group("Compositor")
-        .description("Show the bindings overlay");
+    // #[cfg(feature = "snowcap")]
+    // input::keybind(mod_key | Mod::SHIFT, 'k')
+    //     .on_press(|| {
+    //         pinnacle_api::snowcap::BindOverlay::new().show();
+    //     })
+    //     .group("Compositor")
+    //     .description("Show the bindings overlay");
 
     // `mod_key + shift + q` quits Pinnacle
     #[cfg(not(feature = "snowcap"))]
@@ -561,7 +561,7 @@ async fn config() {
                     .and_then(|output| output.current_mode())
                     .map(|mode| (mode.size.w as i32) / 20)
                     .unwrap_or(192);
-                master.resize_tile(0, -1 * resize, 0, 0);
+                master.resize_tile(0, -resize, 0, 0);
             }
         })
         .group("Window")

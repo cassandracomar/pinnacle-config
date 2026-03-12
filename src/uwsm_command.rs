@@ -46,7 +46,7 @@ impl Display for SliceSelector {
             SliceSelector::App => "a",
             SliceSelector::Background => "b",
             SliceSelector::Session => "s",
-            SliceSelector::Custom(name) => &name,
+            SliceSelector::Custom(name) => name,
         };
 
         write!(f, "{s}")
@@ -135,11 +135,7 @@ impl UwsmCommand {
     ///
     /// this is useful for setting resource quotas.
     pub fn unit_property(mut self, key: impl ToString, value: impl ToString) -> Self {
-        let mut up = if let Some(up) = self.unit_properties {
-            up
-        } else {
-            HashMap::new()
-        };
+        let mut up = self.unit_properties.unwrap_or_default();
         up.insert(key.to_string(), value.to_string());
         self.unit_properties = Some(up);
         self
@@ -154,11 +150,7 @@ impl UwsmCommand {
         K: ToString,
         V: ToString,
     {
-        let mut up = if let Some(up) = self.unit_properties {
-            up
-        } else {
-            HashMap::new()
-        };
+        let mut up = self.unit_properties.unwrap_or_default();
         up.extend(
             vars.into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string())),
