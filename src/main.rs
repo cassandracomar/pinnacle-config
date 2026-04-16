@@ -741,6 +741,14 @@ async fn config() {
                 window.set_tags(tag::get("III"));
                 window.set_maximized(true);
             }
+            "zoom" | "Zoom" | "ZoomWorkplace" => {
+                tracing::info!(
+                    app_id = %window.app_id(),
+                    title = %window.title(),
+                    size = ?window.size(),
+                    "zoom window opened"
+                );
+            }
             _ => {}
         }
 

@@ -2,3 +2,4 @@ result
 target/
 .direnv/
 .dir-locals.el
+/.agent-shell/
