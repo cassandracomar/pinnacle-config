@@ -741,13 +741,20 @@ async fn config() {
                 window.set_tags(tag::get("III"));
                 window.set_maximized(true);
             }
-            "zoom" | "Zoom" | "ZoomWorkplace" => {
-                tracing::info!(
-                    app_id = %window.app_id(),
-                    title = %window.title(),
-                    size = ?window.size(),
-                    "zoom window opened"
-                );
+            "zoom" => {
+                let title = window.title();
+                match &*title {
+                    "annotate_toolbar" | "zoom_linux_float_video_window" | "as_toolbar" => {
+                        window.set_floating(true);
+                        window.raise();
+                    }
+                    "Meeting" => {
+                        window.set_fullscreen(true);
+                        window.raise();
+                        window.set_tags(tag::get("X"));
+                    }
+                    _ => {}
+                }
             }
             _ => {}
         }
