@@ -643,7 +643,14 @@ async fn config() {
             println!("setting mode {w}x{h}@{refresh_rate_mhz} on {output_name}");
             output.set_mode(w, h, refresh_rate_mhz);
         }
-        output.set_scale(1.5);
+        match &*output.model() {
+            "HISENSE" => {
+                output.set_scale(1.5);
+            }
+            _ => {
+                output.set_scale(1.75);
+            }
+        }
         output.set_vrr(output::Vrr::OnDemand);
 
         let mut tags = tag::add(output, tag_names);
