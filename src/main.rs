@@ -22,6 +22,7 @@ use pinnacle_api::layout::generators::MasterStack;
 use pinnacle_api::output;
 use pinnacle_api::output::Mode;
 use pinnacle_api::output::OutputHandle;
+use pinnacle_api::process::Child;
 use pinnacle_api::process::Command;
 use pinnacle_api::signal::InputSignal;
 use pinnacle_api::signal::OutputSignal;
@@ -170,13 +171,16 @@ fn eww_daemon_is_running(info: ProcInfo) -> bool {
         && info.output.unwrap_or_default().trim() == "pong"
 }
 
-async fn ensure_eww_daemon() {
-    while let eww_ping = Command::new("eww")
+fn eww_ping() -> Option<Child> {
+    Command::new("eww")
         .args(["ping"])
         .pipe_stdout()
         .pipe_stderr()
         .spawn()
-        && let Some(info) = collect_proc_info(eww_ping).await
+}
+
+async fn ensure_eww_daemon() {
+    while let Some(info) = collect_proc_info(eww_ping()).await
         && !eww_daemon_is_running(info)
     {
         sleep(Duration::from_millis(100)).await;
