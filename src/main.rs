@@ -620,6 +620,7 @@ async fn config() {
         .group("Window")
         .description("increase master pane size");
 
+    let terminal_frame_name = "(name . \"eat\")";
     let notmuch_frame_name = "(name . \"notmuch\")";
     let calfw_frame_name = "(name . \"calfw\")";
     let fullscreen = "(fullscreen . fullheight)";
@@ -644,7 +645,7 @@ async fn config() {
         .on_press(move || {
             UwsmCommand::new("emacsclient")
                 .args(make_emacsclient_args(
-                    &format!("({fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"),
+                    &format!("({terminal_frame_name} {fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"),
                     "(+eat/here)",
                 ))
                 .spawn();
@@ -790,7 +791,7 @@ async fn config() {
                 window.set_tags(tag::get("VI"));
             }
             "emacs" => {
-                if window.title().contains("*eat") {
+                if window.title() == "eat" {
                     window.set_maximized(false);
                     window.set_fullscreen(false);
                     window.set_tags(tag::get("IV"));
