@@ -124,7 +124,7 @@ fn emacs_daemon_running(res: ProcInfo) -> bool {
 /// test whether the daemon is alive in a sleep loop, by running `emacsclient -e "(daemonp)"` until we get back `t`
 async fn ensure_emacs_daemon_running() {
     let daemon_running = EmacsClient::new().attach_user_socket().eval("(daemonp)");
-    while let Ok(Some(res)) = timeout(Duration::from_millis(100), daemon_running.run()).await
+    while let Some(res) = daemon_running.run().await
         && !emacs_daemon_running(res)
     {
         sleep(Duration::from_millis(100)).await
