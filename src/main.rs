@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::fmt::Display;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -43,23 +42,11 @@ use tokio::time::timeout;
 use tracing_subscriber::EnvFilter;
 
 use crate::emacsclient::EmacsClient;
+use crate::emacsclient::EmacsInfo;
 use crate::uwsm_command::UwsmCommand;
 
 pub mod emacsclient;
 pub mod uwsm_command;
-
-macro_rules! map {
-    () => {
-        {
-            std::collections::BTreeMap::from([])
-        }
-    };
-    ($($key:expr => $value:expr),+ $(,)?) => {
-        {
-            std::collections::BTreeMap::from([$(($key, $value)),+])
-        }
-    };
-}
 
 fn setup_logger() {
     let filter = EnvFilter::from_default_env();
@@ -122,17 +109,34 @@ fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
     focused.set_focused(true);
 }
 
-async fn ensure_emacsclient_spawned() {
-    let emacsclient = EmacsClient::new().attach_user_socket();
-    let daemon_running = emacsclient.clone().eval("(daemonp)");
+/// the emacs daemon is running when all of the following are true:
+/// 1. the emacsclient command (`emacsclient -e "(daemonp)"`) gave a zero exit code
+/// 2. the command produced no stderr output
+/// 3. the command produced exactly `t` on stdout (after trimming)
+fn emacs_daemon_running(res: EmacsInfo) -> bool {
+    res.exit_code == Some(0)
+        && res.error.unwrap_or_default().trim() == ""
+        && res.output.unwrap_or_default().trim() == "t"
+}
+
+/// test whether the daemon is alive in a sleep loop, by running `emacsclient -e "(daemonp)"` until we get back `t`
+async fn ensure_emacs_daemon_running() {
+    let daemon_running = EmacsClient::new().attach_user_socket().eval("(daemonp)");
     while let Ok(Some(res)) = timeout(Duration::from_millis(100), daemon_running.run()).await
-        // did we get a non-zero error code, get something back on stderr, or successfully connect to something other than the daemon? if so, retry
-        && (res.exit_code != Some(0) || res.error.unwrap_or_default().trim() != "" || res.output.unwrap_or_default().trim() != "t")
+        && !emacs_daemon_running(res)
     {
         sleep(Duration::from_millis(100)).await
     }
+}
 
-    emacsclient.graphical_frame().spawn();
+/// make sure the emacs daemon is running first then start a graphical frame
+async fn ensure_emacsclient_spawned() {
+    ensure_emacs_daemon_running().await;
+
+    EmacsClient::new()
+        .attach_user_socket()
+        .graphical_frame()
+        .spawn();
 }
 
 async fn spawn_firefox_when_online() {
@@ -631,13 +635,11 @@ async fn config() {
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
             EmacsClient::new()
-                .frame_parameters(map! {
-                    "name" => "\"eat\"",
-                    "fullscreen" => "fullheight",
-                    "auto-raise" => "nil",
-                    "auto-lower" => "nil",
-                    "wait-for-wm" => "t",
-                })
+                .frame_parameter("name", "\"eat\"")
+                .frame_parameter("fullscreen", "fullheight")
+                .frame_parameter("auto-raise", "nil")
+                .frame_parameter("auto-lower", "nil")
+                .frame_parameter("wait-for-wm", "t")
                 .eval("(+eat/here)")
                 .spawn();
         })
