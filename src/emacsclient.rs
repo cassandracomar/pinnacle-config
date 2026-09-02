@@ -28,7 +28,7 @@ pub struct EmacsInfo {
     pub exit_code: Option<i32>,
 }
 
-async fn read_fd<T>(fd: Option<&mut T>) -> Option<String>
+pub async fn read_fd<T>(fd: Option<&mut T>) -> Option<String>
 where
     T: AsyncRead + Unpin,
 {

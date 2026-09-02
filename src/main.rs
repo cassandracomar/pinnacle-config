@@ -43,6 +43,7 @@ use tracing_subscriber::EnvFilter;
 
 use crate::emacsclient::EmacsClient;
 use crate::emacsclient::EmacsInfo;
+use crate::emacsclient::read_fd;
 use crate::uwsm_command::UwsmCommand;
 
 pub mod emacsclient;
@@ -160,6 +161,25 @@ fn size_cmp(size1: &Size, size2: &Size) -> Ordering {
 
 fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
     size_cmp(&mode1.size, &mode2.size).then(mode1.refresh_rate_mhz.cmp(&mode2.refresh_rate_mhz))
+}
+
+fn eww_daemon_is_running(exit_code: Option<i32>, o: String, e: String) -> bool {
+    exit_code == Some(0) && e.trim() == "" && o.trim() == "pong"
+}
+
+async fn ensure_eww_daemon() {
+    if let Some(mut child) = Command::new("eww")
+        .args(["ping"])
+        .pipe_stdout()
+        .pipe_stderr()
+        .spawn()
+        && let Some(o) = read_fd(child.stdout.as_mut()).await
+        && let Some(e) = read_fd(child.stderr.as_mut()).await
+        && let exit_code = child.wait_async().await.exit_code
+        && !eww_daemon_is_running(exit_code, o, e)
+    {
+        sleep(Duration::from_millis(100)).await;
+    }
 }
 
 fn ensure_bar(output: &OutputHandle) {
@@ -625,7 +645,7 @@ async fn config() {
 
     // `M-RET` spawns emacs
     input::keybind(mod_key, Keysym::Return)
-        .on_press(move || {
+        .on_press(|| {
             EmacsClient::new().graphical_frame().spawn();
         })
         .group("Process")
@@ -633,7 +653,7 @@ async fn config() {
 
     // `M-S-RET` spawns an eat terminal
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
-        .on_press(move || {
+        .on_press(|| {
             EmacsClient::new()
                 .graphical_frame()
                 .frame_parameter("name", "\"eat\"")
@@ -649,7 +669,7 @@ async fn config() {
 
     // `Super-RET` spawns notmuch
     input::keybind(mod4_key, Keysym::Return)
-        .on_press(move || {
+        .on_press(|| {
             EmacsClient::new()
                 .graphical_frame()
                 .frame_parameter("name", "\"notmuch\"")
@@ -661,7 +681,7 @@ async fn config() {
 
     // `Super-S-RET` spawns calfw
     input::keybind(mod4_key | Mod::SHIFT, Keysym::Return)
-        .on_press(move || {
+        .on_press(|| {
             EmacsClient::new()
                 .graphical_frame()
                 .frame_parameter("name", "\"calfw\"")
@@ -883,9 +903,11 @@ async fn config() {
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
-    // need to delay creating the bar to give the daemon a bit of time to start
-    sleep(Duration::from_secs(1)).await;
-    output::for_each_output(ensure_bar);
+    tokio::spawn(async {
+        // need to delay creating the bar to give the daemon a bit of time to start
+        ensure_eww_daemon().await;
+        output::for_each_output(ensure_bar);
+    });
 
     UwsmCommand::new(terminal).unique().once().spawn();
     tokio::spawn(spawn_firefox_when_online());
