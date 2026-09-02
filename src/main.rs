@@ -42,11 +42,12 @@ use tokio::time::timeout;
 use tracing_subscriber::EnvFilter;
 
 use crate::emacsclient::EmacsClient;
-use crate::emacsclient::EmacsInfo;
-use crate::emacsclient::read_fd;
+use crate::procinfo::ProcInfo;
+use crate::procinfo::collect_proc_info;
 use crate::uwsm_command::UwsmCommand;
 
 pub mod emacsclient;
+pub mod procinfo;
 pub mod uwsm_command;
 
 fn setup_logger() {
@@ -114,7 +115,7 @@ fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
 /// 1. the emacsclient command (`emacsclient -e "(daemonp)"`) gave a zero exit code
 /// 2. the command produced no stderr output
 /// 3. the command produced exactly `t` on stdout (after trimming)
-fn emacs_daemon_running(res: EmacsInfo) -> bool {
+fn emacs_daemon_running(res: ProcInfo) -> bool {
     res.exit_code == Some(0)
         && res.error.unwrap_or_default().trim() == ""
         && res.output.unwrap_or_default().trim() == "t"
@@ -163,20 +164,20 @@ fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
     size_cmp(&mode1.size, &mode2.size).then(mode1.refresh_rate_mhz.cmp(&mode2.refresh_rate_mhz))
 }
 
-fn eww_daemon_is_running(exit_code: Option<i32>, o: String, e: String) -> bool {
-    exit_code == Some(0) && e.trim() == "" && o.trim() == "pong"
+fn eww_daemon_is_running(info: ProcInfo) -> bool {
+    info.exit_code == Some(0)
+        && info.error.unwrap_or_default().trim() == ""
+        && info.output.unwrap_or_default().trim() == "pong"
 }
 
 async fn ensure_eww_daemon() {
-    while let Some(mut child) = Command::new("eww")
+    while let eww_ping = Command::new("eww")
         .args(["ping"])
         .pipe_stdout()
         .pipe_stderr()
         .spawn()
-        && let Some(o) = read_fd(child.stdout.as_mut()).await
-        && let Some(e) = read_fd(child.stderr.as_mut()).await
-        && let exit_code = child.wait_async().await.exit_code
-        && !eww_daemon_is_running(exit_code, o, e)
+        && let Some(info) = collect_proc_info(eww_ping).await
+        && !eww_daemon_is_running(info)
     {
         sleep(Duration::from_millis(100)).await;
     }

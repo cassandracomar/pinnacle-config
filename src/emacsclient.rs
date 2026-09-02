@@ -2,10 +2,12 @@ use std::{collections::BTreeMap, fmt::Display};
 
 use itertools::Itertools;
 use pinnacle_api::process::{Child, Command};
-use tokio::io::{AsyncRead, AsyncReadExt};
 use users::get_current_uid;
 
-use crate::uwsm_command::UwsmCommand;
+use crate::{
+    procinfo::{ProcInfo, collect_proc_info},
+    uwsm_command::UwsmCommand,
+};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum ClientType {
@@ -20,26 +22,6 @@ pub struct EmacsClient {
     frame_parameters: Option<BTreeMap<String, String>>,
     socket: Option<String>,
     graphical: Option<ClientType>,
-}
-
-pub struct EmacsInfo {
-    pub output: Option<String>,
-    pub error: Option<String>,
-    pub exit_code: Option<i32>,
-}
-
-pub async fn read_fd<T>(fd: Option<&mut T>) -> Option<String>
-where
-    T: AsyncRead + Unpin,
-{
-    if let Some(handle) = fd
-        && let mut o = String::new()
-        && let Ok(_) = handle.read_to_string(&mut o).await
-    {
-        Some(o)
-    } else {
-        None
-    }
 }
 
 impl EmacsClient {
@@ -174,19 +156,7 @@ impl EmacsClient {
     /// run the provided emacsclient command to completion, collecting stdout, stderr, and the exit code.
     ///
     /// this is primarily useful for eval commands that immediately exit.
-    pub async fn run(&self) -> Option<EmacsInfo> {
-        if let Some(mut child) = self.spawn()
-            && let output = read_fd(child.stdout.as_mut()).await
-            && let error = read_fd(child.stderr.as_mut()).await
-            && let res = child.wait_async().await
-        {
-            Some(EmacsInfo {
-                output,
-                error,
-                exit_code: res.exit_code,
-            })
-        } else {
-            None
-        }
+    pub async fn run(&self) -> Option<ProcInfo> {
+        collect_proc_info(self.spawn()).await
     }
 }
