@@ -38,7 +38,6 @@ use pinnacle_api::window::WindowHandle;
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
 use tokio::net::lookup_host;
 use tokio::time::sleep;
-use tokio::time::timeout;
 use tracing_subscriber::EnvFilter;
 
 use crate::emacsclient::EmacsClient;
