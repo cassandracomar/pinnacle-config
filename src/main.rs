@@ -168,7 +168,7 @@ fn eww_daemon_is_running(exit_code: Option<i32>, o: String, e: String) -> bool {
 }
 
 async fn ensure_eww_daemon() {
-    if let Some(mut child) = Command::new("eww")
+    while let Some(mut child) = Command::new("eww")
         .args(["ping"])
         .pipe_stdout()
         .pipe_stderr()
@@ -188,6 +188,12 @@ fn ensure_bar(output: &OutputHandle) {
     Command::new("systemctl")
         .args(["restart", "--user", &eww_service])
         .spawn();
+}
+
+async fn spawn_bars() {
+    // need to delay creating the bar to give the daemon a bit of time to start
+    ensure_eww_daemon().await;
+    output::for_each_output(ensure_bar);
 }
 
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
@@ -903,12 +909,7 @@ async fn config() {
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
-    tokio::spawn(async {
-        // need to delay creating the bar to give the daemon a bit of time to start
-        ensure_eww_daemon().await;
-        output::for_each_output(ensure_bar);
-    });
-
+    tokio::spawn(spawn_bars());
     UwsmCommand::new(terminal).unique().once().spawn();
     tokio::spawn(spawn_firefox_when_online());
     tokio::spawn(ensure_emacsclient_spawned());
