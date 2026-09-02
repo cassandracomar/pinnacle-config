@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::fmt::Display;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -149,6 +150,19 @@ async fn is_online() -> bool {
         .map(Itertools::collect_vec)
         .unwrap_or_default()
         .is_empty()
+}
+
+macro_rules! map {
+    () => {
+        {
+            std::collections::BTreeMap::from([])
+        }
+    };
+    ($($key:expr => $value:expr),+ $(,)?) => {
+        {
+            std::collections::BTreeMap::from([$(($key, $value)),+])
+        }
+    };
 }
 
 fn size_cmp(size1: &Size, size2: &Size) -> Ordering {
@@ -620,16 +634,21 @@ async fn config() {
         .group("Window")
         .description("increase master pane size");
 
-    let terminal_frame_name = "(name . \"eat\")";
-    let notmuch_frame_name = "(name . \"notmuch\")";
-    let calfw_frame_name = "(name . \"calfw\")";
-    let fullscreen = "(fullscreen . fullheight)";
-    let auto_raise = "(auto-raise . nil)";
-    let auto_lower = "(auto-lower . nil)";
-    let wait_for_wm = "(wait-for-wm . t)";
-
-    fn make_emacsclient_args<'a>(frame_name: &'a str, command: &'a str) -> Vec<&'a str> {
-        vec!["-c", "-F", frame_name, "-e", command]
+    fn make_emacsclient_args(
+        frame_parameters: impl IntoIterator<Item = (impl Display, impl Display)>,
+        command: impl Display,
+    ) -> Vec<String> {
+        let fp = frame_parameters
+            .into_iter()
+            .map(|(k, v)| format!("({k} . {v})"))
+            .join(" ");
+        vec![
+            "-c".to_owned(),
+            "-F".to_owned(),
+            format!("({fp})"),
+            "-e".to_owned(),
+            command.to_string(),
+        ]
     }
 
     // `M-RET` spawns emacs
@@ -645,7 +664,13 @@ async fn config() {
         .on_press(move || {
             UwsmCommand::new("emacsclient")
                 .args(make_emacsclient_args(
-                    &format!("({terminal_frame_name} {fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"),
+                    map! {
+                        "name" => "\"eat\"",
+                        "fullscreen" => "fullheight",
+                        "auto-raise" => "nil",
+                        "auto-lower" => "nil",
+                        "wait-for-wm" => "t",
+                    },
                     "(+eat/here)",
                 ))
                 .spawn();
@@ -658,7 +683,9 @@ async fn config() {
         .on_press(move || {
             UwsmCommand::new("emacsclient")
                 .args(make_emacsclient_args(
-                    &format!("({notmuch_frame_name})"),
+                    map! {
+                        "name" => "\"notmuch\"",
+                    },
                     "(=notmuch)",
                 ))
                 .spawn();
@@ -671,7 +698,9 @@ async fn config() {
         .on_press(move || {
             UwsmCommand::new("emacsclient")
                 .args(make_emacsclient_args(
-                    &format!("({calfw_frame_name})"),
+                    map! {
+                        "name" => "\"calfw\"",
+                    },
                     "(+calfw-multi-calendar)",
                 ))
                 .spawn();
