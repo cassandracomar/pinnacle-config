@@ -1,6 +1,6 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs";
-  inputs.pinnacle.url = "github:pinnacle-comp/pinnacle";
+  inputs.pinnacle.url = "github:cassandracomar/pinnacle/fix/compat53-version";
 
   outputs = {
     nixpkgs,
