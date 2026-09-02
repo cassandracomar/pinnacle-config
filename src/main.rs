@@ -37,16 +37,29 @@ use pinnacle_api::window::WindowHandle;
 
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
-use tokio::io::AsyncReadExt;
 use tokio::net::lookup_host;
 use tokio::time::sleep;
 use tokio::time::timeout;
 use tracing_subscriber::EnvFilter;
-use users::get_current_uid;
 
+use crate::emacsclient::EmacsClient;
 use crate::uwsm_command::UwsmCommand;
 
+pub mod emacsclient;
 pub mod uwsm_command;
+
+macro_rules! map {
+    () => {
+        {
+            std::collections::BTreeMap::from([])
+        }
+    };
+    ($($key:expr => $value:expr),+ $(,)?) => {
+        {
+            std::collections::BTreeMap::from([$(($key, $value)),+])
+        }
+    };
+}
 
 fn setup_logger() {
     let filter = EnvFilter::from_default_env();
@@ -109,32 +122,17 @@ fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
     focused.set_focused(true);
 }
 
-macro_rules! splat {
-    ($base:expr, $extra:expr) => {
-        &*[$base.as_slice(), &$extra].concat()
-    };
-}
-
 async fn ensure_emacsclient_spawned() {
-    let uid = get_current_uid();
-    let base_args = ["-s", &format!("/run/user/{uid}/emacs/server")];
-    let args = splat!(base_args, ["-c"]);
-    let eval_args = splat!(base_args, ["--eval", "(daemonp)"]);
-    let mut outp = String::new();
-    while let Some(mut child) = Command::new("emacsclient")
-        .args(eval_args)
-        .pipe_stdout()
-        .spawn()
-        && let Some(output) = &mut child.stdout
-        && let Ok(_) = output.read_to_string(&mut outp).await
-        && outp.trim() != "y"
-        && let Ok(res) = timeout(Duration::from_millis(100), child.wait_async()).await
-        && res.exit_code != Some(0)
+    let emacsclient = EmacsClient::new().attach_user_socket();
+    let daemon_running = emacsclient.clone().eval("(daemonp)");
+    while let Ok(Some(res)) = timeout(Duration::from_millis(100), daemon_running.run()).await
+        // did we get a non-zero error code, get something back on stderr, or successfully connect to something other than the daemon? if so, retry
+        && (res.exit_code != Some(0) || res.error.unwrap_or_default().trim() != "" || res.output.unwrap_or_default().trim() != "t")
     {
         sleep(Duration::from_millis(100)).await
     }
 
-    UwsmCommand::new("emacsclient").args(args).spawn();
+    emacsclient.graphical_frame().spawn();
 }
 
 async fn spawn_firefox_when_online() {
@@ -150,19 +148,6 @@ async fn is_online() -> bool {
         .map(Itertools::collect_vec)
         .unwrap_or_default()
         .is_empty()
-}
-
-macro_rules! map {
-    () => {
-        {
-            std::collections::BTreeMap::from([])
-        }
-    };
-    ($($key:expr => $value:expr),+ $(,)?) => {
-        {
-            std::collections::BTreeMap::from([$(($key, $value)),+])
-        }
-    };
 }
 
 fn size_cmp(size1: &Size, size2: &Size) -> Ordering {
@@ -634,27 +619,10 @@ async fn config() {
         .group("Window")
         .description("increase master pane size");
 
-    fn make_emacsclient_args(
-        frame_parameters: impl IntoIterator<Item = (impl Display, impl Display)>,
-        command: impl Display,
-    ) -> Vec<String> {
-        let fp = frame_parameters
-            .into_iter()
-            .map(|(k, v)| format!("({k} . {v})"))
-            .join(" ");
-        vec![
-            "-c".to_owned(),
-            "-F".to_owned(),
-            format!("({fp})"),
-            "-e".to_owned(),
-            command.to_string(),
-        ]
-    }
-
     // `M-RET` spawns emacs
     input::keybind(mod_key, Keysym::Return)
         .on_press(move || {
-            UwsmCommand::new("emacsclient").args(["-c"]).spawn();
+            EmacsClient::new().graphical_frame().spawn();
         })
         .group("Process")
         .description("Open an emacsclient frame");
@@ -662,17 +630,15 @@ async fn config() {
     // `M-S-RET` spawns an eat terminal
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
-            UwsmCommand::new("emacsclient")
-                .args(make_emacsclient_args(
-                    map! {
-                        "name" => "\"eat\"",
-                        "fullscreen" => "fullheight",
-                        "auto-raise" => "nil",
-                        "auto-lower" => "nil",
-                        "wait-for-wm" => "t",
-                    },
-                    "(+eat/here)",
-                ))
+            EmacsClient::new()
+                .frame_parameters(map! {
+                    "name" => "\"eat\"",
+                    "fullscreen" => "fullheight",
+                    "auto-raise" => "nil",
+                    "auto-lower" => "nil",
+                    "wait-for-wm" => "t",
+                })
+                .eval("(+eat/here)")
                 .spawn();
         })
         .group("Process")
@@ -681,13 +647,9 @@ async fn config() {
     // `Super-RET` spawns notmuch
     input::keybind(mod4_key, Keysym::Return)
         .on_press(move || {
-            UwsmCommand::new("emacsclient")
-                .args(make_emacsclient_args(
-                    map! {
-                        "name" => "\"notmuch\"",
-                    },
-                    "(=notmuch)",
-                ))
+            EmacsClient::new()
+                .frame_parameter("name", "\"notmuch\"")
+                .eval("(=notmuch)")
                 .spawn();
         })
         .group("Process")
@@ -696,13 +658,9 @@ async fn config() {
     // `Super-S-RET` spawns calfw
     input::keybind(mod4_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
-            UwsmCommand::new("emacsclient")
-                .args(make_emacsclient_args(
-                    map! {
-                        "name" => "\"calfw\"",
-                    },
-                    "(+calfw-multi-calendar)",
-                ))
+            EmacsClient::new()
+                .frame_parameter("name", "\"calfw\"")
+                .eval("(+calfw-multi-calendar)")
                 .spawn();
         })
         .group("Process")
