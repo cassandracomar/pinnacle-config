@@ -142,7 +142,7 @@ async fn ensure_emacsclient_spawned() {
 
 async fn spawn_firefox_when_online() {
     while !is_online().await {
-        sleep(Duration::from_secs(1)).await;
+        sleep(Duration::from_millis(100)).await;
     }
     UwsmCommand::new("firefox").unique().once().spawn();
 }
