@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use itertools::Itertools;
 use list_zipper::{SequenceDirection, Zipper};
 use pinnacle_api::input;
 use pinnacle_api::input::Bind;
@@ -35,6 +36,8 @@ use pinnacle_api::window::WindowHandle;
 
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
+use tokio::io::AsyncReadExt;
+use tokio::net::lookup_host;
 use tokio::time::sleep;
 use tokio::time::timeout;
 use tracing_subscriber::EnvFilter;
@@ -105,15 +108,47 @@ fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
     focused.set_focused(true);
 }
 
+macro_rules! splat {
+    ($base:expr, $extra:expr) => {
+        &*[$base.as_slice(), &$extra].concat()
+    };
+}
+
 async fn ensure_emacsclient_spawned() {
     let uid = get_current_uid();
-    let args = ["-c", "-s", &format!("/run/user/{uid}/emacs/server")];
-    while let Some(child) = UwsmCommand::new("emacsclient").args(args).spawn()
-        && let Ok(res) = timeout(Duration::from_secs(1), child.wait_async()).await
+    let base_args = ["-s", &format!("/run/user/{uid}/emacs/server")];
+    let args = splat!(base_args, ["-c"]);
+    let eval_args = splat!(base_args, ["--eval", "(daemonp)"]);
+    let mut outp = String::new();
+    while let Some(mut child) = Command::new("emacsclient")
+        .args(eval_args)
+        .pipe_stdout()
+        .spawn()
+        && let Some(output) = &mut child.stdout
+        && let Ok(_) = output.read_to_string(&mut outp).await
+        && outp.trim() != "y"
+        && let Ok(res) = timeout(Duration::from_millis(100), child.wait_async()).await
         && res.exit_code != Some(0)
     {
+        sleep(Duration::from_millis(100)).await
+    }
+
+    UwsmCommand::new("emacsclient").args(args).spawn();
+}
+
+async fn spawn_firefox_when_online() {
+    while !is_online().await {
         sleep(Duration::from_secs(1)).await;
     }
+    UwsmCommand::new("firefox").unique().once().spawn();
+}
+
+async fn is_online() -> bool {
+    !lookup_host("google.com:0")
+        .await
+        .map(Itertools::collect_vec)
+        .unwrap_or_default()
+        .is_empty()
 }
 
 fn size_cmp(size1: &Size, size2: &Size) -> Ordering {
@@ -585,40 +620,63 @@ async fn config() {
         .group("Window")
         .description("increase master pane size");
 
-    let terminal_frame_name = "(name . \"emacsclient\")";
-    let mu4e_frame_name = "(name . \"mu4e\")";
+    let notmuch_frame_name = "(name . \"notmuch\")";
+    let calfw_frame_name = "(name . \"calfw\")";
     let fullscreen = "(fullscreen . fullheight)";
     let auto_raise = "(auto-raise . nil)";
     let auto_lower = "(auto-lower . nil)";
     let wait_for_wm = "(wait-for-wm . t)";
 
+    fn make_emacsclient_args<'a>(frame_name: &'a str, command: &'a str) -> Vec<&'a str> {
+        vec!["-c", "-F", frame_name, "-e", command]
+    }
+
+    // `M-RET` spawns emacs
+    input::keybind(mod_key, Keysym::Return)
+        .on_press(move || {
+            UwsmCommand::new("emacsclient").args(["-c"]).spawn();
+        })
+        .group("Process")
+        .description("Open an emacsclient frame");
+
     // `M-S-RET` spawns an eat terminal
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
             UwsmCommand::new("emacsclient")
-                .args([
-                    "-c",
-                    "-F",
-                    &*format!(
-                        "({terminal_frame_name} {fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"
-                    ),
-                    "-e",
+                .args(make_emacsclient_args(
+                    &format!("({fullscreen} {auto_raise} {auto_lower} {wait_for_wm})"),
                     "(+eat/here)",
-                ])
+                ))
                 .spawn();
         })
         .group("Process")
         .description("Open an emacs terminal");
 
-    // `M-RET` spawns mu4e
-    input::keybind(mod_key, Keysym::Return)
+    // `Super-RET` spawns notmuch
+    input::keybind(mod4_key, Keysym::Return)
         .on_press(move || {
             UwsmCommand::new("emacsclient")
-                .args(["-c", "-F", &*format!("({mu4e_frame_name})"), "-e", "(mu4e)"])
+                .args(make_emacsclient_args(
+                    &format!("({notmuch_frame_name})"),
+                    "(=notmuch)",
+                ))
                 .spawn();
         })
         .group("Process")
-        .description("Open mu4e");
+        .description("Open notmuch");
+
+    // `Super-S-RET` spawns calfw
+    input::keybind(mod4_key | Mod::SHIFT, Keysym::Return)
+        .on_press(move || {
+            UwsmCommand::new("emacsclient")
+                .args(make_emacsclient_args(
+                    &format!("({calfw_frame_name})"),
+                    "(+calfw-multi-calendar)",
+                ))
+                .spawn();
+        })
+        .group("Process")
+        .description("Open calfw");
 
     //------------------------
     // Tags                  |
@@ -732,11 +790,11 @@ async fn config() {
                 window.set_tags(tag::get("VI"));
             }
             "emacs" => {
-                if window.title().contains("emacsclient") {
+                if window.title().contains("*eat") {
                     window.set_maximized(false);
                     window.set_fullscreen(false);
                     window.set_tags(tag::get("IV"));
-                } else if window.title().contains("mu4e") {
+                } else if window.title().contains("notmuch") || window.title().contains("calfw") {
                     window.set_maximized(true);
                     window.set_tags(tag::get("V"));
                 } else {
@@ -837,8 +895,7 @@ async fn config() {
     output::for_each_output(ensure_bar);
 
     UwsmCommand::new(terminal).unique().once().spawn();
-    UwsmCommand::new("firefox").unique().once().spawn();
-
+    tokio::spawn(spawn_firefox_when_online());
     tokio::spawn(ensure_emacsclient_spawned());
 
     // Add borders to already existing windows.
