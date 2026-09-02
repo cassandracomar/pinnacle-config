@@ -635,6 +635,7 @@ async fn config() {
     input::keybind(mod_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
             EmacsClient::new()
+                .graphical_frame()
                 .frame_parameter("name", "\"eat\"")
                 .frame_parameter("fullscreen", "fullheight")
                 .frame_parameter("auto-raise", "nil")
@@ -650,6 +651,7 @@ async fn config() {
     input::keybind(mod4_key, Keysym::Return)
         .on_press(move || {
             EmacsClient::new()
+                .graphical_frame()
                 .frame_parameter("name", "\"notmuch\"")
                 .eval("(=notmuch)")
                 .spawn();
@@ -661,6 +663,7 @@ async fn config() {
     input::keybind(mod4_key | Mod::SHIFT, Keysym::Return)
         .on_press(move || {
             EmacsClient::new()
+                .graphical_frame()
                 .frame_parameter("name", "\"calfw\"")
                 .eval("(+calfw-multi-calendar)")
                 .spawn();
