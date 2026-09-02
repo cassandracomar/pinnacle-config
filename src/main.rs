@@ -180,7 +180,7 @@ async fn eww_ping() -> Option<ProcInfo> {
 }
 
 async fn ensure_eww_daemon() {
-    while let Ok(Some(info)) = timeout(Duration::from_millis(100), eww_ping()).await
+    while let Some(info) = eww_ping().await
         && !eww_daemon_is_running(info)
     {
         sleep(Duration::from_millis(100)).await;
