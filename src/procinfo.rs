@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use futures::{FutureExt, TryFutureExt, future::OptionFuture};
 use pinnacle_api::process::{Child, Command};
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
@@ -16,30 +17,27 @@ pub async fn read_fd<T>(fd: Option<&mut T>) -> Option<String>
 where
     T: AsyncRead + Unpin,
 {
-    if let Some(handle) = fd
-        && let mut o = String::new()
-        && let Ok(_) = handle.read_to_string(&mut o).await
-    {
-        Some(o)
-    } else {
-        None
-    }
+    futures::future::ready(fd.ok_or(()))
+        .and_then(|handle| {
+            let mut o = String::new();
+            handle.read_to_string(&mut o).map_ok(|_| o)
+        })
+        .await
+        .ok()
 }
 
 pub async fn collect_proc_info(child: Option<Child>) -> Option<ProcInfo> {
-    if let Some(mut child) = child
-        && let output = read_fd(child.stdout.as_mut()).await
-        && let error = read_fd(child.stderr.as_mut()).await
-        && let res = child.wait_async().await
-    {
-        Some(ProcInfo {
+    OptionFuture::from(child.map(|mut child| async {
+        let output = read_fd(child.stdout.as_mut()).await;
+        let error = read_fd(child.stderr.as_mut()).await;
+        let res = child.wait_async().await;
+        ProcInfo {
             output,
             error,
             exit_code: res.exit_code,
-        })
-    } else {
-        None
-    }
+        }
+    }))
+    .await
 }
 
 /// we can test if a daemon is running with a trial command, with expected output.
@@ -48,13 +46,11 @@ pub async fn collect_proc_info(child: Option<Child>) -> Option<ProcInfo> {
 /// 2. the command produced no stderr output
 /// 3. the command produced exactly the expected output on stdout (after trimming)
 pub fn is_running(res: Option<ProcInfo>, expected: &str) -> bool {
-    if let Some(res) = res {
+    res.is_some_and(|res| {
         res.exit_code == Some(0)
             && res.error.unwrap_or_default().trim() == ""
             && res.output.unwrap_or_default().trim() == expected
-    } else {
-        false
-    }
+    })
 }
 
 /// start the provided [Command] in a loop until it succeeds and provides the expected output on stdout, with no output on stderr.
