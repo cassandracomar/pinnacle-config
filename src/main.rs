@@ -864,7 +864,6 @@ async fn config() {
         output.focus();
     })));
 
-    output::connect_signal(OutputSignal::Connect(Box::new(output_setup)));
     output::connect_signal(OutputSignal::Disconnect(Box::new(|output| {
         tracing::info!(output = %output.name(), "disconnected output");
     })));
