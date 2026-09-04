@@ -117,6 +117,11 @@ async fn ensure_emacsclient_spawned() {
         "",
     )
     .await;
+    EmacsClient::new()
+        .attach_user_socket()
+        .eval("(daemonp)")
+        .until_success("t")
+        .await;
 
     EmacsClient::new()
         .attach_user_socket()

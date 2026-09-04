@@ -5,7 +5,7 @@ use pinnacle_api::process::{Child, Command};
 use users::get_current_uid;
 
 use crate::{
-    procinfo::{ProcInfo, collect_proc_info},
+    procinfo::{ProcInfo, collect_proc_info, until_running},
     uwsm_command::UwsmCommand,
 };
 
@@ -137,6 +137,12 @@ impl EmacsClient {
             .collect()
     }
 
+    pub fn command(&self) -> Command {
+        let mut command = Command::new("emacsclient");
+        command.args(self.build());
+        command
+    }
+
     /// spawn emacsclient as an external command, using a systemd slice when appropriate.
     ///
     /// captures stdout and stderr when no frame is requested (i.e. eliding `-c` and `-t`)
@@ -145,11 +151,7 @@ impl EmacsClient {
             Some(ClientType::Graphical) | Some(ClientType::Terminal) => {
                 UwsmCommand::new("emacsclient").args(self.build()).spawn()
             }
-            None => Command::new("emacsclient")
-                .args(self.build())
-                .pipe_stdout()
-                .pipe_stderr()
-                .spawn(),
+            None => self.command().pipe_stdout().pipe_stderr().spawn(),
         }
     }
 
@@ -158,5 +160,9 @@ impl EmacsClient {
     /// this is primarily useful for eval commands that immediately exit.
     pub async fn run(&self) -> Option<ProcInfo> {
         collect_proc_info(self.spawn()).await
+    }
+
+    pub async fn until_success(&self, expected: &str) {
+        until_running(&mut self.command(), expected).await;
     }
 }
