@@ -42,7 +42,6 @@ use tracing_subscriber::EnvFilter;
 
 use crate::emacsclient::EmacsClient;
 use crate::procinfo::ProcInfo;
-use crate::procinfo::collect_proc_info;
 use crate::uwsm_command::UwsmCommand;
 
 pub mod emacsclient;
@@ -164,35 +163,12 @@ fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
     size_cmp(&mode1.size, &mode2.size).then(mode1.refresh_rate_mhz.cmp(&mode2.refresh_rate_mhz))
 }
 
-async fn eww_ping() -> Option<ProcInfo> {
-    let cmd = Command::new("eww")
-        .args(["ping"])
-        .pipe_stdout()
-        .pipe_stderr()
-        .spawn();
-    collect_proc_info(cmd).await
-}
-
-async fn ensure_eww_daemon() {
-    while let Some(info) = eww_ping().await
-        && !is_running(info, "pong")
-    {
-        sleep(Duration::from_millis(100)).await;
-    }
-}
-
 fn ensure_bar(output: &OutputHandle) {
     let output_name = output.name();
     let eww_service = format!("eww-open@{output_name}");
     Command::new("systemctl")
         .args(["restart", "--user", &eww_service])
         .spawn();
-}
-
-async fn spawn_bars() {
-    // need to delay creating the bar to give the daemon a bit of time to start
-    ensure_eww_daemon().await;
-    output::for_each_output(ensure_bar);
 }
 
 /// `config` sets up the pinnacle configuration via the `pinnacle_api`
@@ -907,7 +883,7 @@ async fn config() {
 
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
-    tokio::spawn(spawn_bars());
+    output::for_each_output(ensure_bar);
     UwsmCommand::new(terminal).unique().once().spawn();
     tokio::spawn(spawn_firefox_when_online());
     tokio::spawn(ensure_emacsclient_spawned());
