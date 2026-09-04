@@ -110,21 +110,22 @@ fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
     focused.set_focused(true);
 }
 
-/// the emacs daemon is running when all of the following are true:
-/// 1. the emacsclient command (`emacsclient -e "(daemonp)"`) gave a zero exit code
-/// 2. the command produced no stderr output
-/// 3. the command produced exactly `t` on stdout (after trimming)
-fn emacs_daemon_running(res: ProcInfo) -> bool {
+// we can test if a daemon is running with a trial command, with expected output.
+// the daemon is running if all of the following are true:
+// 1. the trial command gave a zero exit code
+// 2. the command produced no stderr output
+// 3. the command produced exactly the expected output on stdout (after trimming)
+fn is_running(res: ProcInfo, expected: &str) -> bool {
     res.exit_code == Some(0)
         && res.error.unwrap_or_default().trim() == ""
-        && res.output.unwrap_or_default().trim() == "t"
+        && res.output.unwrap_or_default().trim() == expected
 }
 
 /// test whether the daemon is alive in a sleep loop, by running `emacsclient -e "(daemonp)"` until we get back `t`
 async fn ensure_emacs_daemon_running() {
     let daemon_running = EmacsClient::new().attach_user_socket().eval("(daemonp)");
     while let Some(res) = daemon_running.run().await
-        && !emacs_daemon_running(res)
+        && !is_running(res, "t")
     {
         sleep(Duration::from_millis(100)).await
     }
@@ -163,12 +164,6 @@ fn mode_cmp(mode1: &Mode, mode2: &Mode) -> Ordering {
     size_cmp(&mode1.size, &mode2.size).then(mode1.refresh_rate_mhz.cmp(&mode2.refresh_rate_mhz))
 }
 
-fn eww_daemon_is_running(info: ProcInfo) -> bool {
-    info.exit_code == Some(0)
-        && info.error.unwrap_or_default().trim() == ""
-        && info.output.unwrap_or_default().trim() == "pong"
-}
-
 async fn eww_ping() -> Option<ProcInfo> {
     let cmd = Command::new("eww")
         .args(["ping"])
@@ -180,7 +175,7 @@ async fn eww_ping() -> Option<ProcInfo> {
 
 async fn ensure_eww_daemon() {
     while let Some(info) = eww_ping().await
-        && !eww_daemon_is_running(info)
+        && !is_running(info, "pong")
     {
         sleep(Duration::from_millis(100)).await;
     }
