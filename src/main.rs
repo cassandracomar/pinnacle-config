@@ -193,6 +193,7 @@ async fn spawn_bars() {
     // need to delay creating the bar to give the daemon a bit of time to start
     ensure_eww_daemon().await;
     output::for_each_output(ensure_bar);
+    sleep(Duration::from_millis(100)).await;
     Command::new("eww").args(["reload"]).spawn();
 }
 
