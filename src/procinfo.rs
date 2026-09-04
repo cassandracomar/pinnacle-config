@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use futures::{FutureExt, TryFutureExt, future::OptionFuture};
+use futures::{TryFutureExt, future::OptionFuture};
 use pinnacle_api::process::{Child, Command};
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
@@ -20,7 +20,13 @@ where
     futures::future::ready(fd.ok_or(()))
         .and_then(|handle| {
             let mut o = String::new();
-            handle.read_to_string(&mut o).map_ok(|_| o)
+            async move {
+                handle
+                    .read_to_string(&mut o)
+                    .map_err(|_| ())
+                    .await
+                    .map(|_| o)
+            }
         })
         .await
         .ok()
@@ -28,13 +34,10 @@ where
 
 pub async fn collect_proc_info(child: Option<Child>) -> Option<ProcInfo> {
     OptionFuture::from(child.map(|mut child| async {
-        let output = read_fd(child.stdout.as_mut()).await;
-        let error = read_fd(child.stderr.as_mut()).await;
-        let res = child.wait_async().await;
         ProcInfo {
-            output,
-            error,
-            exit_code: res.exit_code,
+            output: read_fd(child.stdout.as_mut()).await,
+            error: read_fd(child.stderr.as_mut()).await,
+            exit_code: child.wait_async().await.exit_code,
         }
     }))
     .await
