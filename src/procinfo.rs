@@ -59,7 +59,7 @@ pub fn is_running(res: Option<ProcInfo>, expected: &str) -> bool {
 /// start the provided [Command] in a loop until it succeeds and provides the expected output on stdout, with no output on stderr.
 pub async fn until_running(command: &mut Command, expected: &str) {
     while let res = collect_proc_info(command.pipe_stdout().pipe_stderr().spawn()).await
-        && is_running(res, expected)
+        && !is_running(res, expected)
     {
         sleep(Duration::from_millis(10)).await;
     }
