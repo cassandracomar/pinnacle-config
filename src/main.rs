@@ -41,7 +41,7 @@ use tokio::time::sleep;
 use tracing_subscriber::EnvFilter;
 
 use crate::emacsclient::EmacsClient;
-use crate::procinfo::ProcInfo;
+use crate::procinfo::until_running;
 use crate::uwsm_command::UwsmCommand;
 
 pub mod emacsclient;
@@ -109,30 +109,14 @@ fn swap_windows(focused: &WindowHandle, next: &WindowHandle) {
     focused.set_focused(true);
 }
 
-// we can test if a daemon is running with a trial command, with expected output.
-// the daemon is running if all of the following are true:
-// 1. the trial command gave a zero exit code
-// 2. the command produced no stderr output
-// 3. the command produced exactly the expected output on stdout (after trimming)
-fn is_running(res: ProcInfo, expected: &str) -> bool {
-    res.exit_code == Some(0)
-        && res.error.unwrap_or_default().trim() == ""
-        && res.output.unwrap_or_default().trim() == expected
-}
-
-/// test whether the daemon is alive in a sleep loop, by running `emacsclient -e "(daemonp)"` until we get back `t`
-async fn ensure_emacs_daemon_running() {
-    let daemon_running = EmacsClient::new().attach_user_socket().eval("(daemonp)");
-    while let Some(res) = daemon_running.run().await
-        && !is_running(res, "t")
-    {
-        sleep(Duration::from_millis(100)).await
-    }
-}
-
 /// make sure the emacs daemon is running first then start a graphical frame
 async fn ensure_emacsclient_spawned() {
-    ensure_emacs_daemon_running().await;
+    until_running(
+        // the daemon is already started by the user target -- this just allows us to wait until it's ready
+        Command::new("systemctl").args(["--user", "start", "emacs.service"]),
+        "",
+    )
+    .await;
 
     EmacsClient::new()
         .attach_user_socket()
