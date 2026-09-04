@@ -13,21 +13,22 @@ pub struct ProcInfo {
     pub exit_code: Option<i32>,
 }
 
+async fn read_to_string<T>(fd: &mut T) -> Result<String, ()>
+where
+    T: AsyncRead + Unpin,
+{
+    let mut o = String::new();
+    fd.read_to_string(&mut o)
+        .await
+        .map_or_else(|_| Err(()), |_| Ok(o))
+}
+
 pub async fn read_fd<T>(fd: Option<&mut T>) -> Option<String>
 where
     T: AsyncRead + Unpin,
 {
     futures::future::ready(fd.ok_or(()))
-        .and_then(|handle| {
-            let mut o = String::new();
-            async move {
-                handle
-                    .read_to_string(&mut o)
-                    .map_err(|_| ())
-                    .await
-                    .map(|_| o)
-            }
-        })
+        .and_then(read_to_string)
         .await
         .ok()
 }
