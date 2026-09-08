@@ -128,10 +128,7 @@ async fn spawn_firefox_when_online() {
     while !is_online().await {
         sleep(Duration::from_millis(100)).await;
     }
-    UwsmCommand::new("firefox-devedition")
-        .unique()
-        .once()
-        .spawn();
+    UwsmCommand::new("firefox-beta").unique().once().spawn();
 }
 
 async fn is_online() -> bool {
@@ -763,7 +760,7 @@ async fn config() {
 
     fn apply_window_rules(window: WindowHandle) {
         match &*window.app_id() {
-            "firefox-devedition" => {
+            "firefox-beta" => {
                 window.set_maximized(true);
                 window.set_tags(tag::get("II"));
             }
