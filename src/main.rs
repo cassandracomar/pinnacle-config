@@ -799,7 +799,16 @@ async fn config() {
                     _ => {}
                 }
             }
-            _ => {}
+            _ => {
+                // this will need to expand over time
+                #[allow(clippy::single_match)]
+                match &*window.title() {
+                    "World of Warcraft" => {
+                        window.set_fullscreen(true);
+                    }
+                    _ => {}
+                }
+            }
         }
 
         window.set_decoration_mode(window::DecorationMode::ServerSide);
