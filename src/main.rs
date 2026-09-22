@@ -877,7 +877,11 @@ async fn config() {
     pinnacle_api::pinnacle::set_xwayland_self_scaling(true);
 
     output::for_each_output(ensure_bar);
-    UwsmCommand::new(terminal).unique().once().spawn();
+    UwsmCommand::new(terminal)
+        .unit_property("Delegate", "yes")
+        .unique()
+        .once()
+        .spawn();
     tokio::spawn(spawn_firefox_when_online());
     tokio::spawn(ensure_emacsclient_spawned());
 
