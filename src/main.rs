@@ -804,7 +804,7 @@ async fn config() {
                 #[allow(clippy::single_match)]
                 match &*window.title() {
                     "World of Warcraft" => {
-                        window.set_fullscreen(true);
+                        window.set_floating(true);
                     }
                     _ => {}
                 }
