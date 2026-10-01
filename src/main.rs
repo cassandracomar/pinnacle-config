@@ -760,7 +760,7 @@ async fn config() {
 
     fn apply_window_rules(window: WindowHandle) {
         match &*window.app_id() {
-            "firefox-beta" => {
+            "firefox" => {
                 window.set_maximized(true);
                 window.set_tags(tag::get("II"));
             }
