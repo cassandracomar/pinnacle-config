@@ -128,7 +128,7 @@ async fn spawn_firefox_when_online() {
     while !is_online().await {
         sleep(Duration::from_millis(100)).await;
     }
-    UwsmCommand::new("firefox-beta").unique().once().spawn();
+    UwsmCommand::new("firefox").unique().once().spawn();
 }
 
 async fn is_online() -> bool {
