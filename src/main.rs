@@ -5,37 +5,20 @@ use std::time::Duration;
 
 use itertools::Itertools;
 use list_zipper::{SequenceDirection, Zipper};
-use pinnacle_api::input;
-use pinnacle_api::input::Bind;
-use pinnacle_api::input::Keysym;
-use pinnacle_api::input::libinput::AccelProfile;
-use pinnacle_api::input::libinput::ClickMethod;
-use pinnacle_api::input::libinput::DeviceHandle;
-use pinnacle_api::input::libinput::TapButtonMap;
-use pinnacle_api::input::{Mod, MouseButton};
-use pinnacle_api::layout;
-use pinnacle_api::layout::LayoutGenerator;
-use pinnacle_api::layout::LayoutNode;
-use pinnacle_api::layout::LayoutResponse;
-use pinnacle_api::layout::generators::Cycle;
-use pinnacle_api::layout::generators::MasterStack;
-use pinnacle_api::output;
-use pinnacle_api::output::Mode;
-use pinnacle_api::output::OutputHandle;
+use pinnacle_api::input::libinput::{AccelProfile, ClickMethod, DeviceHandle, TapButtonMap};
+use pinnacle_api::input::{self, Bind, Keysym, Mod, MouseButton};
+use pinnacle_api::layout::generators::{Cycle, MasterStack};
+use pinnacle_api::layout::{self, LayoutGenerator, LayoutNode, LayoutResponse};
+use pinnacle_api::output::{self, Mode, OutputHandle};
 use pinnacle_api::process::Command;
-use pinnacle_api::signal::InputSignal;
-use pinnacle_api::signal::OutputSignal;
-use pinnacle_api::signal::WindowSignal;
+use pinnacle_api::signal::{InputSignal, OutputSignal, WindowSignal};
 use pinnacle_api::tag;
-use pinnacle_api::util::Batch;
-use pinnacle_api::util::Direction;
-use pinnacle_api::util::Size;
-use pinnacle_api::window;
-use pinnacle_api::window::VrrDemand;
-use pinnacle_api::window::WindowHandle;
+use pinnacle_api::util::{Batch, Direction, Size};
+use pinnacle_api::window::{self, VrrDemand, WindowHandle};
 
 #[cfg(feature = "snowcap")]
 use pinnacle_api::{experimental::snowcap_api::widget::Color, snowcap::FocusBorder};
+
 use tokio::net::lookup_host;
 use tokio::time::sleep;
 use tracing_subscriber::EnvFilter;
