@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, Default)]
-pub enum ClientType {
+pub enum FrameType {
     #[default]
     Graphical,
     Terminal,
@@ -21,7 +21,7 @@ pub struct EmacsClient {
     eval: Option<String>,
     frame_parameters: Option<BTreeMap<String, String>>,
     socket: Option<String>,
-    graphical: Option<ClientType>,
+    frame_type: Option<FrameType>,
 }
 
 impl EmacsClient {
@@ -92,7 +92,7 @@ impl EmacsClient {
     ///
     /// emacsclient `-c` -- spawn a graphical frame
     pub fn graphical_frame(mut self) -> Self {
-        self.graphical = Some(ClientType::Graphical);
+        self.frame_type = Some(FrameType::Graphical);
         self
     }
 
@@ -100,7 +100,7 @@ impl EmacsClient {
     ///
     /// emacsclient `-t` -- hard to see how this is useful from the desktop but it's here for completeness
     pub fn terminal_frame(mut self) -> Self {
-        self.graphical = Some(ClientType::Terminal);
+        self.frame_type = Some(FrameType::Terminal);
         self
     }
 
@@ -124,9 +124,9 @@ impl EmacsClient {
             args.insert("-s".to_owned(), socket.clone());
         }
 
-        if let Some(graphical) = self.graphical.map(|g| match g {
-            ClientType::Graphical => "-c".to_owned(),
-            ClientType::Terminal => "-t".to_owned(),
+        if let Some(graphical) = self.frame_type.map(|g| match g {
+            FrameType::Graphical => "-c".to_owned(),
+            FrameType::Terminal => "-t".to_owned(),
         }) {
             args.insert(graphical, "".to_owned());
         }
@@ -147,8 +147,8 @@ impl EmacsClient {
     ///
     /// captures stdout and stderr when no frame is requested (i.e. eliding `-c` and `-t`)
     pub fn spawn(&self) -> Option<Child> {
-        match &self.graphical {
-            Some(ClientType::Graphical) | Some(ClientType::Terminal) => {
+        match &self.frame_type {
+            Some(FrameType::Graphical) | Some(FrameType::Terminal) => {
                 UwsmCommand::new("emacsclient").args(self.build()).spawn()
             }
             None => self.command().pipe_stdout().pipe_stderr().spawn(),
